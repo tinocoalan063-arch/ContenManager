@@ -1,0 +1,239 @@
+.content {
+    padding: 28px;
+    flex: 1;
+}
+
+.trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #4ade80;
+    background: rgba(34, 197, 94, 0.1);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    margin-left: auto;
+    align-self: flex-start;
+}
+
+/* Grid */
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+/* Sections */
+.section {
+    padding: 20px;
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.sectionHeader h2 {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.sectionBadge {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    background: var(--accent-subtle);
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+    color: var(--text-accent);
+}
+
+.sectionIcon {
+    color: var(--text-muted);
+}
+
+/* Player List */
+.playerList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.playerRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    transition: background var(--transition-fast);
+}
+
+.playerRow:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.playerInfo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.playerName {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.playerPlaylist {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.playerTime {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+/* Activity List */
+.activityList {
+    display: flex;
+    flex-direction: column;
+}
+
+.activityRow {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.activityRow:last-child {
+    border-bottom: none;
+}
+
+.activityDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 6px;
+    background: var(--accent);
+}
+
+.activityDot[data-type="player"] {
+    background: var(--status-online);
+}
+
+.activityDot[data-type="media"] {
+    background: var(--status-info);
+}
+
+.activityDot[data-type="user"] {
+    background: var(--status-warning);
+}
+
+.activityContent p {
+    font-size: 0.83rem;
+    color: var(--text-primary);
+}
+
+.activityContent span {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+/* Storage Widget */
+.storageCard {
+    grid-column: span 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.storageHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.storageProgress {
+    height: 10px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    margin-bottom: 8px;
+    border: 1px solid var(--glass-border);
+}
+
+.storageFill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #8b5cf6);
+    border-radius: var(--radius-full);
+    transition: width 1s ease-out;
+}
+
+.storageLabels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+/* Alert Banner */
+.alertBanner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: var(--radius-md);
+    margin-bottom: 24px;
+    animation: slideDown 0.4s ease-out;
+}
+
+.alertIcon {
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.alertText {
+    flex: 1;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.alertText p {
+    margin: 0;
+}
+
+.alertLink {
+    color: #ef4444;
+    text-decoration: underline;
+    font-weight: 600;
+    margin-left: 8px;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 1024px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,199 @@
+.content {
+    padding: 28px;
+    flex: 1;
+}
+
+.headerSubtext {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.playerCell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.playerIcon {
+    color: var(--accent);
+    opacity: 0.7;
+}
+
+.playerName {
+    font-weight: 500;
+}
+
+.deviceKeyCell {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.deviceKey {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+}
+
+.copyBtn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: color var(--transition-fast);
+}
+
+.copyBtn:hover {
+    color: var(--accent);
+}
+
+.groupText {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.playlistTag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.78rem;
+    color: var(--text-accent);
+    background: var(--accent-subtle);
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+}
+
+.noPlaylist {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.timeText {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Modal extras */
+.keyPreview {
+    margin-top: 4px;
+}
+
+.keyBox {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.keyBox code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.keyHint {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+/* Scheduler Styles */
+.schedulerGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 12px;
+}
+
+/* Command Modal Styles */
+.modalText {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+    line-height: 1.5;
+}
+
+.commandGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.commandBtn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 24px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.commandBtn:hover:not(:disabled) {
+    background: var(--accent-subtle);
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.commandBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.commandBtn span {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.commandBtn svg {
+    color: var(--accent);
+}
+
+.daysGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.dayBtn {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--glass-border);
+    color: var(--text-muted);
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.dayBtn:hover {
+    border-color: var(--accent);
+}
+
+.dayBtnActive {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
+.rowActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}

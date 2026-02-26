@@ -1,0 +1,162 @@
+.container {
+    padding: 24px;
+    height: calc(100vh - var(--topbar-height));
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.editorLayout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 20px;
+    flex: 1;
+    min-height: 0;
+}
+
+/* Sidebar: Media Library */
+.library {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow: hidden;
+}
+
+.librarySearch {
+    padding: 8px 12px;
+}
+
+.libraryList {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-right: 4px;
+}
+
+.libraryItem {
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.libraryItem:hover {
+    background: var(--glass-bg-hover);
+}
+
+.itemThumb {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.itemThumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.itemInfo h4 {
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.itemInfo p {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+/* Main Area: Sequence */
+.sequenceArea {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow: hidden;
+}
+
+.sequenceHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.sequenceList {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-right: 4px;
+}
+
+.seqItem {
+    display: grid;
+    grid-template-columns: 40px 80px 1fr 120px 40px;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 16px;
+}
+
+.seqHandle {
+    color: var(--text-muted);
+    cursor: grab;
+}
+
+.seqThumb {
+    width: 60px;
+    height: 40px;
+    border-radius: var(--radius-xs);
+    background: var(--bg-secondary);
+    overflow: hidden;
+}
+
+.seqThumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.seqName h4 {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.seqDuration {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.durationInput {
+    width: 60px;
+    text-align: center;
+    padding: 4px;
+}
+
+.maxDuration {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.emptySequence {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    border: 2px dashed var(--glass-border);
+    border-radius: var(--radius-lg);
+    gap: 12px;
+}
