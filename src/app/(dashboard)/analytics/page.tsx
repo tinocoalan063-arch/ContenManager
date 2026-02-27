@@ -95,7 +95,7 @@ export default function AnalyticsPage() {
                                 <option value="30">Últimos 30 días</option>
                             </select>
                         </div>
-                        <button className="btn btn-secondary btn-sm" onClick={() => window.print()}>
+                        <button className="btn btn-secondary btn-sm btn-full-mobile" onClick={() => window.print()}>
                             <Download size={14} />
                             Exportar PDF
                         </button>
@@ -196,32 +196,34 @@ export default function AnalyticsPage() {
                     {/* Top Content */}
                     <div className={`glass-card ${styles.section}`}>
                         <h2>Top Contenido</h2>
-                        <div className={styles.tableSection}>
-                            <table className="table">
-                                <thead>
-                                    <tr>
-                                        <th>Archivo</th>
-                                        <th style={{ textAlign: 'right' }}>Vistas</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {data?.topMediaData.map((item, i) => (
-                                        <tr key={i}>
-                                            <td style={{ fontSize: '0.85rem' }}>{item.name}</td>
-                                            <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--accent)' }}>
-                                                {item.count.toLocaleString()}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {data?.topMediaData.length === 0 && (
+                        <div className="mobile-table-wrapper">
+                            <div className={styles.tableSection}>
+                                <table className="table">
+                                    <thead>
                                         <tr>
-                                            <td colSpan={2} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>
-                                                Sin datos suficientes
-                                            </td>
+                                            <th>Archivo</th>
+                                            <th style={{ textAlign: 'right' }}>Vistas</th>
                                         </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        {data?.topMediaData.map((item, i) => (
+                                            <tr key={i}>
+                                                <td style={{ fontSize: '0.85rem' }}>{item.name}</td>
+                                                <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--accent)' }}>
+                                                    {item.count.toLocaleString()}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {data?.topMediaData.length === 0 && (
+                                            <tr>
+                                                <td colSpan={2} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>
+                                                    Sin datos suficientes
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -1,0 +1,79 @@
+.mobileNavbar {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--topbar-height, 64px);
+    padding: 0 16px;
+    background: var(--bg-elevated, #1a1a35);
+    border-bottom: 1px solid var(--glass-border, rgba(0, 0, 0, 0.1));
+    position: sticky;
+    top: 0;
+    z-index: 110;
+    /* Above main content, below sidebar/overlay */
+}
+
+.left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.menuBtn {
+    background: none;
+    border: none;
+    color: var(--text-primary, #ffffff);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+}
+
+.branding {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.logoIcon {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm, 6px);
+    background: linear-gradient(135deg, var(--purple-600, #7c3aed), var(--purple-400, #a370ff));
+    color: white;
+}
+
+.appName {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary, #ffffff);
+}
+
+.right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple-600, #7c3aed), var(--purple-400, #a370ff));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: white;
+}
+
+@media (max-width: 1024px) {
+    .mobileNavbar {
+        display: flex;
+    }
+}

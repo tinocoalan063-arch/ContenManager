@@ -105,10 +105,12 @@ export default function PlaylistsPage() {
                         <h1>Playlists</h1>
                         <p className={styles.headerSubtext}>{playlists.length} secuencias creadas</p>
                     </div>
-                    <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-                        <Plus size={16} />
-                        Nueva Playlist
-                    </button>
+                    <div className="page-header-actions">
+                        <button className="btn btn-primary btn-full-mobile" onClick={() => setShowModal(true)}>
+                            <Plus size={16} />
+                            Nueva Playlist
+                        </button>
+                    </div>
                 </div>
 
                 {loading ? (

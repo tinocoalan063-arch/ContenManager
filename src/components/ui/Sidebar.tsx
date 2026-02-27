@@ -17,6 +17,7 @@ import {
     BarChart3,
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
+import { useSidebar } from './SidebarContext';
 
 const navItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -29,18 +30,32 @@ const navItems = [
     { href: '/logs', label: 'Eventos', icon: Activity },
 ];
 
-export default function Sidebar() {
+interface Branding {
+    theme?: 'dark' | 'light';
+    accentColor?: string;
+    appName?: string;
+    logoBase64?: string;
+}
+
+export default function Sidebar({ branding }: { branding?: Branding }) {
     const pathname = usePathname();
+    const { isOpen, setIsOpen } = useSidebar();
 
     return (
-        <aside className={styles.sidebar}>
+        <aside className={`${styles.sidebar} ${isOpen ? styles.sidebarMobileOpen : styles.sidebarMobileClosed}`}>
             {/* Logo */}
             <div className={styles.logo}>
-                <div className={styles.logoIcon}>
-                    <Zap size={20} />
-                </div>
+                {branding?.logoBase64 ? (
+                    <img src={branding.logoBase64} alt="App Logo" className={styles.customLogoIcon} style={{ width: 24, height: 24, objectFit: 'contain' }} />
+                ) : (
+                    <div className={styles.logoIcon}>
+                        <Zap size={20} />
+                    </div>
+                )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', justifyContent: 'center' }}>
-                    <span className={styles.logoText} style={{ lineHeight: 1 }}>SmartSignage</span>
+                    <span className={styles.logoText} style={{ lineHeight: 1 }}>
+                        {branding?.appName || 'SmartSignage'}
+                    </span>
                     <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>by JPAT Digital</span>
                 </div>
             </div>
@@ -57,6 +72,7 @@ export default function Sidebar() {
                                 key={item.href}
                                 href={item.href}
                                 className={`${styles.navItem} ${isActive ? styles.active : ''}`}
+                                onClick={() => setIsOpen(false)}
                             >
                                 <item.icon size={18} />
                                 <span>{item.label}</span>
@@ -69,7 +85,7 @@ export default function Sidebar() {
 
             {/* Footer */}
             <div className={styles.footer}>
-                <Link href="/settings" className={styles.navItem}>
+                <Link href="/settings" className={styles.navItem} onClick={() => setIsOpen(false)}>
                     <Settings size={18} />
                     <span>Configuración</span>
                 </Link>

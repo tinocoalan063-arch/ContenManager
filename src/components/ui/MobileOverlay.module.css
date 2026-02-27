@@ -1,0 +1,19 @@
+.overlay {
+    display: none;
+}
+
+@media (max-width: 1024px) {
+    .overlay {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        z-index: 90;
+        /* Right below the sidebar which is 100 */
+    }
+}

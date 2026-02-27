@@ -831,7 +831,7 @@ export default function MediaPage() {
                                 <List size={14} />
                             </button>
                         </div>
-                        <button className="btn btn-primary" onClick={() => setShowUpload(true)} disabled={isOverLimit} title={isOverLimit ? 'Límite alcanzado' : 'Subir archivos'}>
+                        <button className="btn btn-primary btn-full-mobile" onClick={() => setShowUpload(true)} disabled={isOverLimit} title={isOverLimit ? 'Límite alcanzado' : 'Subir archivos'}>
                             <Upload size={16} />
                             Subir Archivo
                         </button>

@@ -2,6 +2,7 @@
 
 import { Bell, Search, Menu } from 'lucide-react';
 import styles from './Topbar.module.css';
+import { useSidebar } from './SidebarContext';
 
 interface TopbarProps {
     title: string;
@@ -9,13 +10,16 @@ interface TopbarProps {
 }
 
 export default function Topbar({ title, subtitle }: TopbarProps) {
+    const { toggle } = useSidebar();
+
     return (
         <header className={styles.topbar}>
             <div className={styles.left}>
-                <button className={styles.menuBtn}>
+                <button className={styles.menuBtn} onClick={toggle}>
                     <Menu size={20} />
                 </button>
-                <div>
+
+                <div className={styles.titleContainer}>
                     <h1 className={styles.title}>{title}</h1>
                     {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
                 </div>

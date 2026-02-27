@@ -4,7 +4,7 @@
     left: 0;
     width: var(--sidebar-width);
     height: 100vh;
-    background: rgba(10, 10, 25, 0.85);
+    background: var(--bg-elevated);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-right: 1px solid var(--glass-border);
@@ -12,7 +12,21 @@
     flex-direction: column;
     z-index: 100;
     padding: 20px 14px;
+    transition: transform var(--transition-medium);
 }
+
+/* Explicit mobile states to ensure CSS Modules hashing */
+.sidebarMobileClosed {
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebarMobileOpen {
+    display: flex;
+    flex-direction: column;
+}
+
+
 
 /* Logo */
 .logo {
@@ -135,4 +149,24 @@
 .logoutBtn:hover {
     color: var(--status-error);
     background: rgba(239, 68, 68, 0.08);
+}
+
+@media (max-width: 1024px) {
+    .logo {
+        display: none !important;
+    }
+
+    .sidebarMobileClosed {
+        transform: translateX(-100%);
+        background: var(--bg-elevated, #1a1a35);
+        padding-top: 80px;
+        width: 260px !important;
+    }
+
+    .sidebarMobileOpen {
+        transform: translateX(0);
+        background: var(--bg-elevated, #1a1a35);
+        padding-top: 80px;
+        width: 260px !important;
+    }
 }

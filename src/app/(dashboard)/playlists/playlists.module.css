@@ -98,3 +98,13 @@
     color: var(--accent-hover);
     gap: 6px;
 }
+
+@media (max-width: 768px) {
+    .playlistGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .cardHeader {
+        flex-wrap: wrap;
+    }
+}

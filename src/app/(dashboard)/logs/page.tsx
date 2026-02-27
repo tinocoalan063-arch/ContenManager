@@ -92,7 +92,7 @@ export default function LogsPage() {
                         <p className={styles.headerSubtext}>Últimos 100 eventos registrados</p>
                     </div>
                     <div className="page-header-actions">
-                        <div className="search-box" style={{ width: '250px' }}>
+                        <div className="search-box" style={{ flex: 1, minWidth: '200px' }}>
                             <Search size={16} />
                             <input
                                 type="text"
@@ -101,7 +101,7 @@ export default function LogsPage() {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        <div className="search-box" style={{ width: '150px' }}>
+                        <div className="search-box" style={{ flex: 1, minWidth: '150px' }}>
                             <Filter size={16} />
                             <select
                                 value={filterType}
@@ -114,7 +114,7 @@ export default function LogsPage() {
                                 <option value="auth">Autenticación</option>
                             </select>
                         </div>
-                        <button className="btn btn-secondary btn-sm" onClick={fetchLogs}>
+                        <button className="btn btn-secondary btn-sm btn-full-mobile" onClick={fetchLogs}>
                             <RefreshCw size={14} />
                             Actualizar
                         </button>
@@ -133,48 +133,50 @@ export default function LogsPage() {
                         <p>No se han encontrado registros que coincidan con los filtros.</p>
                     </div>
                 ) : (
-                    <div className="table-container">
-                        <table className={styles.logTable}>
-                            <thead>
-                                <tr>
-                                    <th style={{ width: '180px' }}>Fecha y Hora</th>
-                                    <th style={{ width: '200px' }}>Player</th>
-                                    <th style={{ width: '150px' }}>Evento</th>
-                                    <th>Detalles</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredLogs.map((log) => (
-                                    <tr key={log.id} className={styles.logRow}>
-                                        <td className={styles.timestamp}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <Clock size={12} />
-                                                {new Date(log.created_at).toLocaleString('es-MX', {
-                                                    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
-                                                })}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div className={styles.playerCell}>
-                                                <Monitor size={14} className={styles.playerIcon} />
-                                                {getPlayerName(log)}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span className={`${styles.eventBadge} ${getEventBadgeClass(log.event)}`}>
-                                                {log.event}
-                                            </span>
-                                        </td>
-                                        <td className={styles.detailsText} title={JSON.stringify(log.details)}>
-                                            {typeof log.details === 'object'
-                                                ? JSON.stringify(log.details)
-                                                : String(log.details)
-                                            }
-                                        </td>
+                    <div className="mobile-table-wrapper">
+                        <div className="table-container">
+                            <table className={styles.logTable}>
+                                <thead>
+                                    <tr>
+                                        <th style={{ width: '180px' }}>Fecha y Hora</th>
+                                        <th style={{ width: '200px' }}>Player</th>
+                                        <th style={{ width: '150px' }}>Evento</th>
+                                        <th>Detalles</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {filteredLogs.map((log) => (
+                                        <tr key={log.id} className={styles.logRow}>
+                                            <td className={styles.timestamp}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <Clock size={12} />
+                                                    {new Date(log.created_at).toLocaleString('es-MX', {
+                                                        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
+                                                    })}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className={styles.playerCell}>
+                                                    <Monitor size={14} className={styles.playerIcon} />
+                                                    {getPlayerName(log)}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span className={`${styles.eventBadge} ${getEventBadgeClass(log.event)}`}>
+                                                    {log.event}
+                                                </span>
+                                            </td>
+                                            <td className={styles.detailsText} title={JSON.stringify(log.details)}>
+                                                {typeof log.details === 'object'
+                                                    ? JSON.stringify(log.details)
+                                                    : String(log.details)
+                                                }
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
             </div>

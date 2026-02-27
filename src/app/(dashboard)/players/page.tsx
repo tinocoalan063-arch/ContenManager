@@ -266,10 +266,12 @@ export default function PlayersPage() {
                         <p className={styles.headerSubtext}>{players.length} dispositivos registrados</p>
                     </div>
                     {currentUserRole !== 'editor' && (
-                        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-                            <Plus size={16} />
-                            Registrar Player
-                        </button>
+                        <div className="page-header-actions">
+                            <button className="btn btn-primary btn-full-mobile" onClick={() => setShowModal(true)}>
+                                <Plus size={16} />
+                                Registrar Player
+                            </button>
+                        </div>
                     )}
                 </div>
 
@@ -285,101 +287,103 @@ export default function PlayersPage() {
                         <p>Registra tu primer player para comenzar a distribuir contenido.</p>
                     </div>
                 ) : (
-                    <div className="table-container">
-                        <table className="table">
-                            <thead>
-                                <tr>
-                                    <th>Estado</th>
-                                    <th>Nombre</th>
-                                    <th>Device Key</th>
-                                    <th>Grupo</th>
-                                    <th>Playlist</th>
-                                    <th>Última conexión</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {players.map((player) => {
-                                    const playlistName = getActivePlaylist(player);
-                                    return (
-                                        <tr key={player.id}>
-                                            <td>
-                                                <span className={`badge ${player.status === 'online' ? 'badge-online' : 'badge-offline'}`}>
-                                                    {player.status}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div className={styles.playerCell}>
-                                                    <Monitor size={16} className={styles.playerIcon} />
-                                                    <span className={styles.playerName}>{player.name}</span>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className={styles.deviceKeyCell}>
-                                                    <code className={styles.deviceKey}>{player.device_key}</code>
-                                                    <button
-                                                        className={styles.copyBtn}
-                                                        title={copiedKey === player.device_key ? '¡Copiado!' : 'Copiar'}
-                                                        onClick={() => copyKey(player.device_key)}
-                                                    >
-                                                        <Copy size={12} />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className={styles.groupText}>{player.group_name || '—'}</span>
-                                            </td>
-                                            <td>
-                                                {playlistName ? (
-                                                    <span className={styles.playlistTag}>
-                                                        <ListVideo size={12} />
-                                                        {playlistName}
+                    <div className="mobile-table-wrapper">
+                        <div className="table-container">
+                            <table className="table">
+                                <thead>
+                                    <tr>
+                                        <th>Estado</th>
+                                        <th>Nombre</th>
+                                        <th>Device Key</th>
+                                        <th>Grupo</th>
+                                        <th>Playlist</th>
+                                        <th>Última conexión</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {players.map((player) => {
+                                        const playlistName = getActivePlaylist(player);
+                                        return (
+                                            <tr key={player.id}>
+                                                <td>
+                                                    <span className={`badge ${player.status === 'online' ? 'badge-online' : 'badge-offline'}`}>
+                                                        {player.status}
                                                     </span>
-                                                ) : (
-                                                    <span className={styles.noPlaylist}>Sin asignar</span>
-                                                )}
-                                            </td>
-                                            <td>
-                                                <span className={styles.timeText}>
-                                                    {player.last_heartbeat
-                                                        ? new Date(player.last_heartbeat).toLocaleString('es-MX', {
-                                                            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-                                                        })
-                                                        : 'Nunca'}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div className="row-actions">
-                                                    <button className="btn btn-icon btn-secondary btn-sm" title="Programación" onClick={() => openAssignModal(player)}>
-                                                        <Calendar size={14} />
-                                                    </button>
-                                                    <button className="btn btn-icon btn-secondary btn-sm" title="Asignar Playlist" onClick={() => openAssignModal(player)}>
-                                                        <ListVideo size={14} />
-                                                    </button>
-                                                    {currentUserRole !== 'editor' && (
-                                                        <>
-                                                            <button
-                                                                className="btn btn-secondary btn-sm btn-icon"
-                                                                title="Comandos Remotos"
-                                                                onClick={() => {
-                                                                    setSelectedPlayer(player);
-                                                                    setShowCommandModal(true);
-                                                                }}
-                                                            >
-                                                                <Terminal size={14} />
-                                                            </button>
-                                                            <button className="btn btn-danger btn-sm btn-icon" onClick={() => handleDelete(player.id)}>
-                                                                <Trash2 size={12} />
-                                                            </button>
-                                                        </>
+                                                </td>
+                                                <td>
+                                                    <div className={styles.playerCell}>
+                                                        <Monitor size={16} className={styles.playerIcon} />
+                                                        <span className={styles.playerName}>{player.name}</span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div className={styles.deviceKeyCell}>
+                                                        <code className={styles.deviceKey}>{player.device_key}</code>
+                                                        <button
+                                                            className={styles.copyBtn}
+                                                            title={copiedKey === player.device_key ? '¡Copiado!' : 'Copiar'}
+                                                            onClick={() => copyKey(player.device_key)}
+                                                        >
+                                                            <Copy size={12} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span className={styles.groupText}>{player.group_name || '—'}</span>
+                                                </td>
+                                                <td>
+                                                    {playlistName ? (
+                                                        <span className={styles.playlistTag}>
+                                                            <ListVideo size={12} />
+                                                            {playlistName}
+                                                        </span>
+                                                    ) : (
+                                                        <span className={styles.noPlaylist}>Sin asignar</span>
                                                     )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                                                </td>
+                                                <td>
+                                                    <span className={styles.timeText}>
+                                                        {player.last_heartbeat
+                                                            ? new Date(player.last_heartbeat).toLocaleString('es-MX', {
+                                                                month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                                                            })
+                                                            : 'Nunca'}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div className="row-actions">
+                                                        <button className="btn btn-icon btn-secondary btn-sm" title="Programación" onClick={() => openAssignModal(player)}>
+                                                            <Calendar size={14} />
+                                                        </button>
+                                                        <button className="btn btn-icon btn-secondary btn-sm" title="Asignar Playlist" onClick={() => openAssignModal(player)}>
+                                                            <ListVideo size={14} />
+                                                        </button>
+                                                        {currentUserRole !== 'editor' && (
+                                                            <>
+                                                                <button
+                                                                    className="btn btn-secondary btn-sm btn-icon"
+                                                                    title="Comandos Remotos"
+                                                                    onClick={() => {
+                                                                        setSelectedPlayer(player);
+                                                                        setShowCommandModal(true);
+                                                                    }}
+                                                                >
+                                                                    <Terminal size={14} />
+                                                                </button>
+                                                                <button className="btn btn-danger btn-sm btn-icon" onClick={() => handleDelete(player.id)}>
+                                                                    <Trash2 size={12} />
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
             </div>

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, Loader2, User, Building, HardDrive, Shield } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Save, Loader2, User, Building, HardDrive, Shield, Palette, Image as LucideImage } from 'lucide-react';
 import styles from './settings.module.css';
 
 interface SettingsClientProps {
@@ -10,6 +11,7 @@ interface SettingsClientProps {
 }
 
 export default function SettingsClient({ userId, isAdmin }: SettingsClientProps) {
+    const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [savingProfile, setSavingProfile] = useState(false);
     const [savingCompany, setSavingCompany] = useState(false);
@@ -25,6 +27,12 @@ export default function SettingsClient({ userId, isAdmin }: SettingsClientProps)
     const [timezone, setTimezone] = useState('America/Mexico_City');
     const [storageUsed, setStorageUsed] = useState(0);
     const [storageLimit, setStorageLimit] = useState(5120); // 5GB default
+
+    // Branding State
+    const [appName, setAppName] = useState('');
+    const [theme, setTheme] = useState('dark');
+    const [accentColor, setAccentColor] = useState('#8b46ff'); // Default purple
+    const [logoBase64, setLogoBase64] = useState('');
 
     useEffect(() => {
         loadData();
@@ -43,6 +51,13 @@ export default function SettingsClient({ userId, isAdmin }: SettingsClientProps)
                     setCompanyName(json.data.name || '');
                     if (json.data.settings?.timezone) {
                         setTimezone(json.data.settings.timezone);
+                    }
+                    if (json.data.settings?.branding) {
+                        const b = json.data.settings.branding;
+                        if (b.appName) setAppName(b.appName);
+                        if (b.theme) setTheme(b.theme);
+                        if (b.accentColor) setAccentColor(b.accentColor);
+                        if (b.logoBase64) setLogoBase64(b.logoBase64);
                     }
                     const limit = json.data.storage_limit_mb || json.data.max_storage_mb || 5120;
                     setStorageLimit(limit);
@@ -91,7 +106,10 @@ export default function SettingsClient({ userId, isAdmin }: SettingsClientProps)
 
         const body = {
             name: companyName,
-            settings: { timezone }
+            settings: {
+                timezone,
+                branding: { appName, theme, accentColor, logoBase64 }
+            }
         };
 
         const res = await fetch('/api/v1/settings/company', {
@@ -102,6 +120,7 @@ export default function SettingsClient({ userId, isAdmin }: SettingsClientProps)
 
         if (res.ok) {
             setModalMessage({ title: '¡Guardado!', message: 'Ajustes de la organización guardados exitosamente.', type: 'success' });
+            router.refresh();
         } else {
             const data = await res.json();
             setModalMessage({ title: 'Error al guardar', message: data.error || 'Ocurrió un error inesperado.', type: 'error' });
@@ -240,6 +259,103 @@ export default function SettingsClient({ userId, isAdmin }: SettingsClientProps)
                                 Guardar Organización
                             </button>
                         </div>
+                    </div>
+                </div>
+            ) : null}
+
+            {/* --- PERSONALIZATION / BRANDING (Admins only) --- */}
+            {isAdmin ? (
+                <div className={styles.settingsCard}>
+                    <div className={styles.cardHeader}>
+                        <div className={styles.cardIcon}><Palette size={20} /></div>
+                        <h2>Personalización</h2>
+                    </div>
+                    <div className={styles.cardBody}>
+
+                        <div className="form-group">
+                            <label className="label">Nombre de la Aplicación</label>
+                            <input
+                                className="input"
+                                value={appName}
+                                placeholder="Ej. Panel Dental Digital"
+                                onChange={(e) => setAppName(e.target.value)}
+                            />
+                            <span className={styles.fieldHint}>Se mostrará en la navegación arriba del sello de JPAT Digital. Dejar en blanco para usar "SmartSignage".</span>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="label">Esquema de Colores (Tema)</label>
+                            <select
+                                className="select"
+                                value={theme}
+                                onChange={(e) => setTheme(e.target.value)}
+                            >
+                                <option value="dark">Modo Oscuro (Por Defecto)</option>
+                                <option value="light">Modo Claro</option>
+                            </select>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="label">Color Principal (Accent Color)</label>
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                <input
+                                    type="color"
+                                    value={accentColor}
+                                    onChange={(e) => setAccentColor(e.target.value)}
+                                    style={{ width: '40px', height: '40px', padding: '0', border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'none' }}
+                                />
+                                <span style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>{accentColor}</span>
+                            </div>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="label">Logo Personalizado</label>
+                            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                                <div style={{
+                                    width: '64px', height: '64px', borderRadius: 'var(--radius-md)', background: 'var(--bg-tertiary)', border: '1px solid var(--glass-border)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'
+                                }}>
+                                    {logoBase64 ? (
+                                        <img src={logoBase64} alt="Logo Prev" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                    ) : (
+                                        <LucideImage size={24} color="var(--text-muted)" />
+                                    )}
+                                </div>
+                                <div>
+                                    <input
+                                        type="file"
+                                        accept="image/png, image/jpeg, image/svg+xml"
+                                        style={{ display: 'none' }}
+                                        id="logo-upload"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (!file) return;
+                                            if (file.size > 500 * 1024) {
+                                                setModalMessage({ title: 'Error', message: 'La imagen debe ser menor a 500KB', type: 'error' });
+                                                return;
+                                            }
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => {
+                                                setLogoBase64(reader.result as string);
+                                            };
+                                            reader.readAsDataURL(file);
+                                        }}
+                                    />
+                                    <label htmlFor="logo-upload" className="btn btn-secondary" style={{ display: 'inline-flex', cursor: 'pointer', marginBottom: '4px' }}>
+                                        Elegir Imagen
+                                    </label>
+                                    <p className={styles.fieldHint} style={{ margin: 0 }}>PNG, JPG o SVG. Máx 500KB. Ideal cuadrada o transparente.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className={styles.cardActions}>
+                            <button className="btn btn-primary" onClick={handleSaveCompany} disabled={savingCompany}>
+                                {savingCompany ? <Loader2 size={16} className="loading-spinner" /> : <Save size={16} />}
+                                Guardar Personalización
+                            </button>
+                        </div>
+
                     </div>
                 </div>
             ) : (

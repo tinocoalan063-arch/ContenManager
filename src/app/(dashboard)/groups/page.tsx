@@ -139,10 +139,12 @@ export default function GroupsPage() {
                         <h1>Gestión de Grupos</h1>
                         <p className={styles.headerSubtext}>{groups.length} grupos creados</p>
                     </div>
-                    <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
-                        <Plus size={16} />
-                        Nuevo Grupo
-                    </button>
+                    <div className="page-header-actions">
+                        <button className="btn btn-primary btn-full-mobile" onClick={() => setShowCreateModal(true)}>
+                            <Plus size={16} />
+                            Nuevo Grupo
+                        </button>
+                    </div>
                 </div>
 
                 {loading ? (

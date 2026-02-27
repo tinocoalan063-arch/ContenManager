@@ -156,10 +156,12 @@ export default function UsersPage() {
                         <h1>Usuarios</h1>
                         <p className={styles.headerSubtext}>{users.length} usuarios registrados</p>
                     </div>
-                    <button className="btn btn-primary" onClick={openCreateModal}>
-                        <Plus size={16} />
-                        Nuevo Usuario
-                    </button>
+                    <div className="page-header-actions">
+                        <button className="btn btn-primary btn-full-mobile" onClick={openCreateModal}>
+                            <Plus size={16} />
+                            Nuevo Usuario
+                        </button>
+                    </div>
                 </div>
 
                 {loading ? (
@@ -180,66 +182,68 @@ export default function UsersPage() {
                         <p>Aún no hay usuarios registrados en tu empresa.</p>
                     </div>
                 ) : (
-                    <div className="table-container">
-                        <table className="table">
-                            <thead>
-                                <tr>
-                                    <th>Usuario</th>
-                                    <th>Email</th>
-                                    <th>Rol</th>
-                                    <th>Fecha de registro</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {users.map((user) => {
-                                    const badge = getRoleBadge(user.role);
-                                    return (
-                                        <tr key={user.id}>
-                                            <td>
-                                                <div className={styles.userCell}>
-                                                    <div className={styles.userAvatar}>
-                                                        {user.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                    <div className="mobile-table-wrapper">
+                        <div className="table-container">
+                            <table className="table">
+                                <thead>
+                                    <tr>
+                                        <th>Usuario</th>
+                                        <th>Email</th>
+                                        <th>Rol</th>
+                                        <th>Fecha de registro</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {users.map((user) => {
+                                        const badge = getRoleBadge(user.role);
+                                        return (
+                                            <tr key={user.id}>
+                                                <td>
+                                                    <div className={styles.userCell}>
+                                                        <div className={styles.userAvatar}>
+                                                            {user.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                                        </div>
+                                                        <span className={styles.userName}>{user.full_name}</span>
                                                     </div>
-                                                    <span className={styles.userName}>{user.full_name}</span>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className={styles.emailCell}>
-                                                    <Mail size={14} className={styles.emailIcon} />
-                                                    <span>{user.email}</span>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className={`${styles.roleBadge} ${badge.style}`}>
-                                                    <Shield size={10} />
-                                                    {badge.label}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span className={styles.dateText}>
-                                                    {new Date(user.created_at).toLocaleDateString('es-MX', {
-                                                        year: 'numeric',
-                                                        month: 'short',
-                                                        day: 'numeric',
-                                                    })}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div className={styles.actionBtns}>
-                                                    <button className="btn btn-icon btn-secondary btn-sm" title="Editar" onClick={() => openEditModal(user)}>
-                                                        <Edit3 size={13} />
-                                                    </button>
-                                                    <button className="btn btn-icon btn-danger btn-sm" title="Eliminar" onClick={() => handleDelete(user.id)}>
-                                                        <Trash2 size={13} />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                                                </td>
+                                                <td>
+                                                    <div className={styles.emailCell}>
+                                                        <Mail size={14} className={styles.emailIcon} />
+                                                        <span>{user.email}</span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span className={`${styles.roleBadge} ${badge.style}`}>
+                                                        <Shield size={10} />
+                                                        {badge.label}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span className={styles.dateText}>
+                                                        {new Date(user.created_at).toLocaleDateString('es-MX', {
+                                                            year: 'numeric',
+                                                            month: 'short',
+                                                            day: 'numeric',
+                                                        })}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div className={styles.actionBtns}>
+                                                        <button className="btn btn-icon btn-secondary btn-sm" title="Editar" onClick={() => openEditModal(user)}>
+                                                            <Edit3 size={13} />
+                                                        </button>
+                                                        <button className="btn btn-icon btn-danger btn-sm" title="Eliminar" onClick={() => handleDelete(user.id)}>
+                                                            <Trash2 size={13} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
             </div>
