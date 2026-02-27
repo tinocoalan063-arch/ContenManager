@@ -39,7 +39,10 @@ export default function Sidebar() {
                 <div className={styles.logoIcon}>
                     <Zap size={20} />
                 </div>
-                <span className={styles.logoText}>SignageFlow</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', justifyContent: 'center' }}>
+                    <span className={styles.logoText} style={{ lineHeight: 1 }}>SmartSignage</span>
+                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>by JPAT Digital</span>
+                </div>
             </div>
 
             {/* Navigation */}

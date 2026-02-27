@@ -48,7 +48,10 @@ export default function LoginPage() {
                     <div className={styles.logoIcon}>
                         <Zap size={28} />
                     </div>
-                    <h1 className={styles.logoTitle}>SignageFlow</h1>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <h1 className={styles.logoTitle} style={{ marginBottom: '-4px' }}>SmartSignage</h1>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '16px' }}>by JPAT Digital</span>
+                    </div>
                     <p className={styles.logoSubtitle}>
                         Gestión de señalización digital
                     </p>

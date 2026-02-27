@@ -20,8 +20,95 @@ import {
     Info,
     FolderOpen,
     ChevronRight,
+    ExternalLink,
 } from 'lucide-react';
 import styles from '../editor.module.css';
+
+// ---- HELPER FUNCTIONS ----
+export function generateSlideHtml(slideBackgrounds: any[], sceneLayers: any[], slideBgMode: string = 'cover') {
+    return `
+        <style>body { margin: 0; padding: 0; overflow: hidden; background: #000; }</style>
+        <div id="slide" style="position:relative; width:100vw; height:100vh; overflow:hidden; background:#000; font-family:sans-serif;">
+            <!-- Background Slideshow -->
+            <div id="bg-slideshow" style="width:100%; height:100%;">
+                ${slideBackgrounds.map((bg, idx) => `
+                    <img 
+                        src="${bg.preview_url}" 
+                        id="bg-${idx}"
+                        style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:${slideBgMode}; opacity:${idx === 0 ? 1 : 0}; transition:opacity 0.8s ease-in-out;" 
+                    />
+                `).join('')}
+            </div>
+
+            <!-- Dynamic Layers -->
+            ${sceneLayers.filter(l => l.active).map(layer => {
+        let content = '';
+        if (layer.type === 'clock') {
+            content = `
+                        <div id="clock-${layer.id}" style="color:#fff; text-align:right; text-shadow:0 4px 15px rgba(0,0,0,0.8); white-space:nowrap;">
+                            <div class="time" style="font-size:8vw; font-weight:bold; line-height:1;">00:00</div>
+                            <div class="date" style="font-size:3vw; opacity:0.9; margin-top:10px;">Cargando...</div>
+                        </div>
+                    `;
+        } else if (layer.type === 'weather') {
+            content = `
+                        <div id="weather-${layer.id}" style="color:#fff; display:flex; align-items:center; gap:20px; text-shadow:0 4px 15px rgba(0,0,0,0.8); white-space:nowrap;">
+                            <div style="font-size:6vw;">☀️</div>
+                            <div style="text-align:left;">
+                                <div style="font-size:5vw; font-weight:bold; line-height:1;">24°C</div>
+                                <div style="font-size:2vw; opacity:0.9;">Localidad</div>
+                            </div>
+                        </div>
+                    `;
+        } else if (layer.type === 'image') {
+            content = `<img src="${layer.url}" style="width:100%; height:100%; object-fit:contain;" />`;
+        } else if (layer.type === 'video') {
+            content = `<video src="${layer.url}" autoplay loop muted style="width:100%; height:100%; object-fit:contain;"></video>`;
+        } else if (layer.type === 'widget' || layer.type === 'url') {
+            content = `<iframe srcdoc="${layer.html?.replace(/"/g, '&quot;')}" style="width:100%; height:100%; border:none; overflow:hidden;"></iframe>`;
+        }
+
+        return `
+                    <div id="layer-${layer.id}" style="position:absolute; left:${layer.x}%; top:${layer.y}%; transform:translate(-50%, -50%) scale(${layer.scale}); z-index:10; pointer-events:none;">
+                        ${content}
+                    </div>
+                `;
+    }).join('')}
+
+            <script>
+                // Background Switching Logic
+                const bgs = ${JSON.stringify(slideBackgrounds.map(bg => bg.duration))};
+                let current = 0;
+                function nextBg() {
+                    const currentEl = document.getElementById('bg-' + current);
+                    if(currentEl) currentEl.style.opacity = 0;
+                    current = (current + 1) % bgs.length;
+                    const nextEl = document.getElementById('bg-' + current);
+                    if(nextEl) nextEl.style.opacity = 1;
+                    setTimeout(nextBg, bgs[current] * 1000);
+                }
+                if (bgs.length > 1) setTimeout(nextBg, bgs[0] * 1000);
+
+                // Library for Updates
+                function updateClocks() {
+                    const now = new Date();
+                    const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                    const dateStr = now.toLocaleDateString('es-ES', {weekday:'long', day:'numeric', month:'long'});
+                    
+                    document.querySelectorAll('[id^="clock-"]').forEach(el => {
+                        const t = el.querySelector('.time');
+                        const d = el.querySelector('.date');
+                        if(t) t.innerText = timeStr;
+                        if(d) d.innerText = dateStr;
+                    });
+                }
+                setInterval(updateClocks, 1000);
+                updateClocks();
+            </script>
+        </div>
+    `;
+}
+
 
 interface MediaItem {
     id: string;
@@ -31,6 +118,7 @@ interface MediaItem {
     file_path: string | null;
     url: string | null;
     preview_url?: string;
+    config?: any;
 }
 
 interface PlaylistItem {
@@ -61,6 +149,9 @@ export default function PlaylistEditorPage({ params }: { params: Promise<{ id: s
     const [previewIndex, setPreviewIndex] = useState(0);
     const [previewProgress, setPreviewProgress] = useState(0);
 
+    // Sequence Drag & Drop
+    const [draggedSeqIndex, setDraggedSeqIndex] = useState<number | null>(null);
+
     useEffect(() => {
         loadData();
     }, [id]);
@@ -87,19 +178,39 @@ export default function PlaylistEditorPage({ params }: { params: Promise<{ id: s
             setPlaylist(playlistData);
             const sortedItems = (playlistData.playlist_items || []).sort((a: any, b: any) => a.position - b.position);
 
-            // Generate signed URLs for existing items to avoid "black" elements
             const itemsWithPreviews = await Promise.all(
                 sortedItems.map(async (item: any) => {
-                    if (item.media.type === 'url') return { ...item, media: { ...item.media, preview_url: item.media.url } };
-                    if (!item.media.file_path) return item;
+                    const media = item.media;
+                    if (media.type === 'url') return { ...item, media: { ...media, preview_url: media.url } };
+
+                    if (media.type === 'widget' && media.config) {
+                        try {
+                            const configObj = typeof media.config === 'string' ? JSON.parse(media.config) : media.config;
+                            if (configObj.backgrounds) {
+                                const newBgs = await Promise.all(configObj.backgrounds.map(async (bg: any) => {
+                                    const { data: bgItem } = await supabase.from('media').select('file_path').eq('id', bg.id).single();
+                                    if (bgItem?.file_path) {
+                                        const { data: signedData } = await supabase.storage.from('media').createSignedUrl(bgItem.file_path, 3600);
+                                        return { ...bg, preview_url: signedData?.signedUrl || bg.preview_url };
+                                    }
+                                    return bg;
+                                }));
+                                return { ...item, media: { ...media, config: { ...configObj, backgrounds: newBgs } } };
+                            }
+                            return { ...item, media: { ...media, config: configObj } };
+                        } catch (e) { }
+                        return item;
+                    }
+
+                    if (!media.file_path) return item;
 
                     const { data: signedData } = await supabase.storage
                         .from('media')
-                        .createSignedUrl(item.media.file_path, 3600);
+                        .createSignedUrl(media.file_path, 3600);
 
                     return {
                         ...item,
-                        media: { ...item.media, preview_url: signedData?.signedUrl }
+                        media: { ...media, preview_url: signedData?.signedUrl }
                     };
                 })
             );
@@ -140,6 +251,26 @@ export default function PlaylistEditorPage({ params }: { params: Promise<{ id: s
             const itemsWithPreviews = await Promise.all(
                 mediaRes.data.map(async (item: any) => {
                     if (item.type === 'url') return { ...item, preview_url: item.url };
+
+                    if (item.type === 'widget' && item.config) {
+                        try {
+                            const configObj = typeof item.config === 'string' ? JSON.parse(item.config) : item.config;
+                            if (configObj.backgrounds) {
+                                const newBgs = await Promise.all(configObj.backgrounds.map(async (bg: any) => {
+                                    const { data: bgItem } = await supabase.from('media').select('file_path').eq('id', bg.id).single();
+                                    if (bgItem?.file_path) {
+                                        const { data: signedData } = await supabase.storage.from('media').createSignedUrl(bgItem.file_path, 3600);
+                                        return { ...bg, preview_url: signedData?.signedUrl || bg.preview_url };
+                                    }
+                                    return bg;
+                                }));
+                                return { ...item, config: { ...configObj, backgrounds: newBgs } };
+                            }
+                            return { ...item, config: configObj };
+                        } catch (e) { }
+                        return item;
+                    }
+
                     if (!item.file_path) return item;
 
                     const { data: signedData } = await supabase.storage
@@ -184,8 +315,43 @@ export default function PlaylistEditorPage({ params }: { params: Promise<{ id: s
     };
 
     const removeItem = (index: number) => {
-        setItems(items.filter((_, i) => i !== index));
+        const newItems = [...items];
+        newItems.splice(index, 1);
+        setItems(newItems);
     };
+
+    // ----- Drag & Drop Logic -----
+    const handleDragStart = (e: React.DragEvent, index: number) => {
+        setDraggedSeqIndex(index);
+        e.dataTransfer.effectAllowed = 'move';
+        // Hide the original item physically being dragged by the browser
+        setTimeout(() => {
+            const el = document.getElementById(`seq-item-${index}`);
+            if (el) el.style.opacity = '0.4';
+        }, 0);
+    };
+
+    const handleDragOver = (e: React.DragEvent, index: number) => {
+        e.preventDefault();
+        if (draggedSeqIndex === null || draggedSeqIndex === index) return;
+
+        const newItems = [...items];
+        const draggedItem = newItems[draggedSeqIndex];
+
+        newItems.splice(draggedSeqIndex, 1);
+        newItems.splice(index, 0, draggedItem);
+
+        setItems(newItems);
+        setDraggedSeqIndex(index);
+    };
+
+    const handleDragEnd = (e: React.DragEvent, index: number) => {
+        e.preventDefault();
+        setDraggedSeqIndex(null);
+        const el = document.getElementById(`seq-item-${index}`);
+        if (el) el.style.opacity = '1';
+    };
+    // ----------------------------
 
     const updateDuration = (index: number, value: number) => {
         const newItems = [...items];
@@ -319,24 +485,22 @@ export default function PlaylistEditorPage({ params }: { params: Promise<{ id: s
                         </div>
 
                         {/* Library Breadcrumbs */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflowX: 'auto', paddingBottom: '4px', fontSize: '0.75rem' }}>
-                            <button
-                                className={`btn-link ${!currentFolderId ? 'text-accent' : ''}`}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflowX: 'auto', paddingBottom: '4px', fontSize: '0.85rem' }}>
+                            <span
                                 onClick={() => setCurrentFolderId(null)}
-                                style={{ whiteSpace: 'nowrap' }}
+                                style={{ cursor: 'pointer', whiteSpace: 'nowrap', padding: '2px 4px', borderRadius: '4px', background: 'transparent', color: !currentFolderId ? 'var(--text-primary)' : 'var(--text-muted)' }}
                             >
                                 Raíz
-                            </button>
+                            </span>
                             {breadcrumbs.map((bc) => (
                                 <div key={bc.id} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <ChevronRight size={12} className="text-muted" />
-                                    <button
-                                        className={`btn-link ${currentFolderId === bc.id ? 'text-accent' : ''}`}
+                                    <ChevronRight size={14} className="text-muted" />
+                                    <span
                                         onClick={() => setCurrentFolderId(bc.id)}
-                                        style={{ whiteSpace: 'nowrap' }}
+                                        style={{ cursor: 'pointer', whiteSpace: 'nowrap', padding: '2px 4px', borderRadius: '4px', background: 'transparent', color: currentFolderId === bc.id ? 'var(--text-primary)' : 'var(--text-muted)' }}
                                     >
                                         {bc.name}
-                                    </button>
+                                    </span>
                                 </div>
                             ))}
                         </div>
@@ -357,28 +521,36 @@ export default function PlaylistEditorPage({ params }: { params: Promise<{ id: s
                             </div>
                         ))}
 
-                        {filteredLibrary.map(item => (
-                            <div key={item.id} className={styles.libraryItem} onClick={() => addItem(item)}>
-                                <div className={styles.itemThumb}>
-                                    {item.preview_url ? (
-                                        item.type === 'image' ? (
-                                            <img src={item.preview_url} alt="" />
-                                        ) : item.type === 'video' ? (
-                                            <VideoIcon size={16} />
+                        {filteredLibrary.map((item) => {
+                            const config = typeof item.config === 'string' ? JSON.parse(item.config || '{}') : (item.config || {});
+                            return (
+                                <div key={item.id} className={styles.libraryItem} onClick={() => addItem(item)}>
+                                    <div className={styles.itemThumb} style={{ overflow: 'hidden' }}>
+                                        {item.type === 'widget' ? (
+                                            <iframe
+                                                srcDoc={generateSlideHtml(config.backgrounds || [], config.layers || [], config.slideBgMode || 'cover')}
+                                                style={{ width: '200%', height: '200%', border: 'none', transform: 'scale(0.5)', transformOrigin: 'top left', pointerEvents: 'none', background: '#000' }}
+                                            />
+                                        ) : item.preview_url ? (
+                                            item.type === 'image' ? (
+                                                <img src={item.preview_url} alt="" />
+                                            ) : item.type === 'video' ? (
+                                                <VideoIcon size={16} />
+                                            ) : (
+                                                <Globe size={16} />
+                                            )
                                         ) : (
-                                            <Globe size={16} />
-                                        )
-                                    ) : (
-                                        item.type === 'widget' ? <Info size={16} /> : <ImageIcon size={16} />
-                                    )}
+                                            <ImageIcon size={16} />
+                                        )}
+                                    </div>
+                                    <div className={styles.itemInfo}>
+                                        <h4>{item.name}</h4>
+                                        <p>{item.type === 'widget' ? 'Diapositiva' : item.type} · {item.duration_seconds}s</p>
+                                    </div>
+                                    <Plus size={14} style={{ marginLeft: 'auto', color: 'var(--accent)' }} />
                                 </div>
-                                <div className={styles.itemInfo}>
-                                    <h4>{item.name}</h4>
-                                    <p>{item.type} · {item.duration_seconds}s</p>
-                                </div>
-                                <Plus size={14} style={{ marginLeft: 'auto', color: 'var(--accent)' }} />
-                            </div>
-                        ))}
+                            )
+                        })}
 
                         {filteredLibrary.length === 0 && folders.length === 0 && (
                             <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
@@ -403,44 +575,62 @@ export default function PlaylistEditorPage({ params }: { params: Promise<{ id: s
                                 <p style={{ fontSize: '0.75rem', opacity: 0.6 }}>Haz clic en los elementos de la izquierda</p>
                             </div>
                         ) : (
-                            items.map((item, idx) => (
-                                <div key={idx} className={`glass-card ${styles.seqItem}`}>
-                                    <div className={styles.seqHandle}>
-                                        <GripVertical size={18} />
-                                    </div>
-                                    <div className={styles.seqThumb}>
-                                        {item.media.preview_url && item.media.type === 'image' ? (
-                                            <img src={item.media.preview_url} alt="" />
-                                        ) : (
-                                            <div style={{ display: 'flex', alignItems: 'center', justifySelf: 'center', height: '100%', width: '100%', justifyContent: 'center' }}>
-                                                {item.media.type === 'video' ? <VideoIcon size={14} /> : <ImageIcon size={14} />}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className={styles.seqName}>
-                                        <h4>{item.media.name}</h4>
-                                    </div>
-                                    <div className={styles.seqDuration}>
-                                        <div className="form-group" style={{ marginBottom: 0 }}>
-                                            <input
-                                                type="number"
-                                                className={`input ${styles.durationInput}`}
-                                                value={item.duration_seconds}
-                                                onChange={(e) => updateDuration(idx, parseInt(e.target.value) || 0)}
-                                            />
+                            items.map((item, idx) => {
+                                const config = typeof item.media.config === 'string' ? JSON.parse(item.media.config || '{}') : (item.media.config || {});
+                                return (
+                                    <div
+                                        key={`${item.media.id}-${idx}`}
+                                        id={`seq-item-${idx}`}
+                                        className={`glass-card ${styles.seqItem} ${draggedSeqIndex === idx ? styles.isDragging : ''}`}
+                                        draggable
+                                        onDragStart={(e) => handleDragStart(e, idx)}
+                                        onDragOver={(e) => handleDragOver(e, idx)}
+                                        onDragEnd={(e) => handleDragEnd(e, idx)}
+                                        style={{ cursor: 'grab', transition: 'all 0.2s ease', opacity: draggedSeqIndex === idx ? 0.4 : 1 }}
+                                    >
+                                        <div className={styles.seqHandle} style={{ cursor: 'grab' }}>
+                                            <GripVertical size={18} />
                                         </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                            <span style={{ fontSize: '0.7rem' }}>segundos</span>
-                                            {item.media.type === 'video' && (
-                                                <span className={styles.maxDuration}>Max: {item.media.duration_seconds}s</span>
+                                        <div className={styles.seqThumb} style={{ overflow: 'hidden' }}>
+                                            {item.media.type === 'widget' ? (
+                                                <iframe
+                                                    srcDoc={generateSlideHtml(config.backgrounds || [], config.layers || [], config.slideBgMode || 'cover')}
+                                                    style={{ width: '200%', height: '200%', border: 'none', transform: 'scale(0.5)', transformOrigin: 'top left', pointerEvents: 'none', background: '#000' }}
+                                                />
+                                            ) : item.media.preview_url && item.media.type === 'image' ? (
+                                                <img src={item.media.preview_url} alt="" />
+                                            ) : (
+                                                <div style={{ display: 'flex', alignItems: 'center', justifySelf: 'center', height: '100%', width: '100%', justifyContent: 'center' }}>
+                                                    {item.media.type === 'video' ? <VideoIcon size={14} /> : <Globe size={14} />}
+                                                </div>
                                             )}
                                         </div>
+                                        <div className={styles.seqName}>
+                                            <h4>{item.media.name}</h4>
+                                        </div>
+                                        <div className={styles.seqDuration}>
+                                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                                <input
+                                                    type="number"
+                                                    className={`input ${styles.durationInput}`}
+                                                    value={item.duration_seconds}
+                                                    onChange={(e) => updateDuration(idx, parseInt(e.target.value) || 0)}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                />
+                                            </div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                <span style={{ fontSize: '0.7rem' }}>segundos</span>
+                                                {item.media.type === 'video' && (
+                                                    <span className={styles.maxDuration}>Max: {item.media.duration_seconds}s</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <button className="btn btn-icon btn-danger btn-sm" onClick={() => removeItem(idx)}>
+                                            <Trash2 size={14} />
+                                        </button>
                                     </div>
-                                    <button className="btn btn-icon btn-danger btn-sm" onClick={() => removeItem(idx)}>
-                                        <Trash2 size={14} />
-                                    </button>
-                                </div>
-                            ))
+                                )
+                            })
                         )}
                     </div>
 
@@ -484,17 +674,37 @@ export default function PlaylistEditorPage({ params }: { params: Promise<{ id: s
                                 />
                             )}
                             {items[previewIndex].media.type === 'url' && (
-                                <iframe
-                                    src={items[previewIndex].media.url || ''}
-                                    style={{ width: '100%', height: '100%', border: 'none' }}
-                                />
+                                <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                                    <iframe
+                                        src={items[previewIndex].media.url || ''}
+                                        style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }}
+                                    />
+                                    <div style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 10 }}>
+                                        <a
+                                            href={items[previewIndex].media.url || '#'}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="btn btn-secondary btn-sm"
+                                            style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.3)', backdropFilter: 'blur(8px)', background: 'rgba(255,255,255,0.1)' }}
+                                            title="Abrir en pestaña nueva si no carga"
+                                        >
+                                            <ExternalLink size={14} />
+                                            Abrir enlace
+                                        </a>
+                                    </div>
+                                </div>
                             )}
-                            {items[previewIndex].media.type === 'widget' && (
-                                <iframe
-                                    srcDoc={(items[previewIndex].media as any).config?.html}
-                                    style={{ width: '100%', height: '100%', border: 'none' }}
-                                />
-                            )}
+                            {items[previewIndex].media.type === 'widget' && (() => {
+                                const config = typeof items[previewIndex].media.config === 'string'
+                                    ? JSON.parse(items[previewIndex].media.config || '{}')
+                                    : (items[previewIndex].media.config || {});
+                                return (
+                                    <iframe
+                                        srcDoc={generateSlideHtml(config.backgrounds || [], config.layers || [], config.slideBgMode || 'cover')}
+                                        style={{ width: '100%', height: '100%', border: 'none', background: '#000' }}
+                                    />
+                                );
+                            })()}
 
                             {/* Progress Bar */}
                             <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '4px', background: 'rgba(255,255,255,0.1)' }}>

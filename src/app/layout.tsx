@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'SignageFlow — Digital Signage CMS',
+  title: 'SmartSignage by JPAT Digital — Digital Signage CMS',
   description: 'Administra contenido digital y distribúyelo a tus pantallas de forma remota',
 };
 

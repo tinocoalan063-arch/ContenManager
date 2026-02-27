@@ -9,7 +9,6 @@ import {
     ListVideo,
     Trash2,
     MoreVertical,
-    Hash,
     Image,
     Clock,
     ChevronRight,
@@ -150,10 +149,6 @@ export default function PlaylistsPage() {
                                         <div className={styles.cardStat}>
                                             <Clock size={12} />
                                             <span>{formatDuration(totalDuration)}</span>
-                                        </div>
-                                        <div className={styles.cardStat}>
-                                            <Hash size={12} />
-                                            <span>v{playlist.version}</span>
                                         </div>
                                     </div>
 
