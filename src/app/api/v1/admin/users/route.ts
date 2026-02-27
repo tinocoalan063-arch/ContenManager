@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     }
 }
 
-// PUT /api/v1/admin/users — Update user role
+// PUT /api/v1/admin/users — Update user (name, email, password, role)
 export async function PUT(request: NextRequest) {
     try {
         const supabase = await createClient();
@@ -164,7 +164,7 @@ export async function PUT(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { id, full_name, role } = body;
+        const { id, full_name, email, password, role } = body;
 
         if (!id) {
             return NextResponse.json<ApiResponse>(
@@ -176,7 +176,32 @@ export async function PUT(request: NextRequest) {
         const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
         if (full_name) updates.full_name = full_name.trim();
         if (role && ['admin', 'editor'].includes(role)) updates.role = role;
+        if (email) updates.email = email.trim();
 
+        // 1. Update Auth Email/Password using Service Role
+        if (email || password) {
+            const serviceClient = await createServiceClient();
+
+            const authUpdates: any = {};
+            if (email) {
+                authUpdates.email = email.trim();
+                authUpdates.email_confirm = true;
+            }
+            if (password) {
+                authUpdates.password = password;
+            }
+
+            const { error: authError } = await serviceClient.auth.admin.updateUserById(id, authUpdates);
+
+            if (authError) {
+                return NextResponse.json<ApiResponse>(
+                    { success: false, error: authError.message },
+                    { status: 400 }
+                );
+            }
+        }
+
+        // 2. Update Public Profile
         const { data: updatedUser, error } = await supabase
             .from('users')
             .update(updates)

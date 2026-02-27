@@ -41,6 +41,7 @@ export default function UsersPage() {
     const [users, setUsers] = useState<UserRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
+    const [editUserId, setEditUserId] = useState<string | null>(null);
     const [newName, setNewName] = useState('');
     const [newEmail, setNewEmail] = useState('');
     const [newPassword, setNewPassword] = useState('');
@@ -82,28 +83,58 @@ export default function UsersPage() {
         setLoading(false);
     }
 
-    async function handleCreate() {
-        if (!newName || !newEmail || !newPassword) return;
+    const openCreateModal = () => {
+        setEditUserId(null);
+        setNewName('');
+        setNewEmail('');
+        setNewPassword('');
+        setNewRole('editor');
+        setShowModal(true);
+    };
+
+    const openEditModal = (user: UserRow) => {
+        setEditUserId(user.id);
+        setNewName(user.full_name);
+        setNewEmail(user.email);
+        setNewPassword(''); // Password is empty for editing (only typed if changing)
+        setNewRole(user.role);
+        setShowModal(true);
+    };
+
+    async function handleSaveUser() {
+        if (!newName || !newEmail) return;
+        if (!editUserId && !newPassword) return; // Password required only for new users
+
         setSaving(true);
 
+        const method = editUserId ? 'PUT' : 'POST';
+        const body: any = {
+            full_name: newName,
+            email: newEmail,
+            role: newRole,
+        };
+
+        if (!editUserId) {
+            body.password = newPassword;
+        } else {
+            body.id = editUserId;
+            if (newPassword) {
+                body.password = newPassword;
+            }
+        }
+
         const res = await fetch('/api/v1/admin/users', {
-            method: 'POST',
+            method: method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                full_name: newName,
-                email: newEmail,
-                password: newPassword,
-                role: newRole,
-            }),
+            body: JSON.stringify(body),
         });
 
         if (res.ok) {
             setShowModal(false);
-            setNewName('');
-            setNewEmail('');
-            setNewPassword('');
-            setNewRole('editor');
             fetchUsers();
+        } else {
+            const data = await res.json();
+            alert(`Error: ${data.error}`);
         }
         setSaving(false);
     }
@@ -125,7 +156,7 @@ export default function UsersPage() {
                         <h1>Usuarios</h1>
                         <p className={styles.headerSubtext}>{users.length} usuarios registrados</p>
                     </div>
-                    <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+                    <button className="btn btn-primary" onClick={openCreateModal}>
                         <Plus size={16} />
                         Nuevo Usuario
                     </button>
@@ -196,6 +227,9 @@ export default function UsersPage() {
                                             </td>
                                             <td>
                                                 <div className={styles.actionBtns}>
+                                                    <button className="btn btn-icon btn-secondary btn-sm" title="Editar" onClick={() => openEditModal(user)}>
+                                                        <Edit3 size={13} />
+                                                    </button>
                                                     <button className="btn btn-icon btn-danger btn-sm" title="Eliminar" onClick={() => handleDelete(user.id)}>
                                                         <Trash2 size={13} />
                                                     </button>
@@ -210,12 +244,12 @@ export default function UsersPage() {
                 )}
             </div>
 
-            {/* Create User Modal */}
+            {/* Create / Edit User Modal */}
             {showModal && (
                 <div className="modal-overlay" onClick={() => setShowModal(false)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2>Nuevo Usuario</h2>
+                            <h2>{editUserId ? 'Editar Usuario' : 'Nuevo Usuario'}</h2>
                             <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
                         </div>
 
@@ -241,11 +275,13 @@ export default function UsersPage() {
                         </div>
 
                         <div className="form-group">
-                            <label className="label">Contraseña</label>
+                            <label className="label">
+                                {editUserId ? 'Nueva Contraseña' : 'Contraseña'}
+                            </label>
                             <input
                                 className="input"
                                 type="password"
-                                placeholder="Mínimo 6 caracteres"
+                                placeholder={editUserId ? "Dejar en blanco para mantener la actual" : "Mínimo 6 caracteres"}
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
                             />
@@ -267,9 +303,9 @@ export default function UsersPage() {
                             <button className="btn btn-secondary" onClick={() => setShowModal(false)}>
                                 Cancelar
                             </button>
-                            <button className="btn btn-primary" onClick={handleCreate} disabled={saving}>
-                                {saving ? <span className="loading-spinner"></span> : <Plus size={16} />}
-                                Crear Usuario
+                            <button className="btn btn-primary" onClick={handleSaveUser} disabled={saving}>
+                                {saving ? <span className="loading-spinner"></span> : editUserId ? <Edit3 size={16} /> : <Plus size={16} />}
+                                {editUserId ? 'Guardar Cambios' : 'Crear Usuario'}
                             </button>
                         </div>
                     </div>
