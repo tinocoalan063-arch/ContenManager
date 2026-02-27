@@ -6,17 +6,17 @@ import type { ApiResponse } from '@/lib/types/database';
  * POST /api/v1/player/heartbeat
  *
  * Player sends periodic heartbeats to report its status.
- * Auth: device_key header
+ * If x-session-id doesn't match the stored session_id, responds with
+ * { duplicate: true } so the old device stops playback.
  *
- * Request headers:
- *   x-device-key: string
- *
- * Request body:
- *   { status?: string, current_version?: number }
+ * Headers:
+ *   x-device-key:  string (required)
+ *   x-session-id:  string (optional — for duplicate prevention)
  */
 export async function POST(request: NextRequest) {
     try {
         const deviceKey = request.headers.get('x-device-key');
+        const requestSessionId = request.headers.get('x-session-id');
 
         if (!deviceKey) {
             return NextResponse.json<ApiResponse>(
@@ -27,10 +27,9 @@ export async function POST(request: NextRequest) {
 
         const supabase = await createServiceClient();
 
-        // Find player
         const { data: player, error: playerError } = await supabase
             .from('players')
-            .select('id')
+            .select('id, session_id')
             .eq('device_key', deviceKey)
             .single();
 
@@ -41,14 +40,24 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // ── Duplicate detection ──────────────────────────────────────────
+        // If the DB has a session_id and the request sends a DIFFERENT one,
+        // a new device has taken over → tell this old device to stop.
+        if (player.session_id && requestSessionId && requestSessionId !== player.session_id) {
+            return NextResponse.json<ApiResponse>({
+                success: true,
+                data: {
+                    duplicate: true,
+                    message: 'Este device_key está activo en otro dispositivo.',
+                },
+            });
+        }
+
         const body = await request.json().catch(() => ({}));
-        const { status, current_version } = body as {
-            status?: string;
-            current_version?: number;
-        };
+        const { status, current_version } = body as { status?: string; current_version?: number };
 
         // Update player heartbeat
-        const { error: updateError } = await supabase
+        await supabase
             .from('players')
             .update({
                 status: 'online',
@@ -57,12 +66,9 @@ export async function POST(request: NextRequest) {
             })
             .eq('id', player.id);
 
-        if (updateError) throw updateError;
-
-        // Log heartbeat event
-        await supabase
-            .from('player_logs')
-            .insert({
+        // Log heartbeat (non-blocking)
+        try {
+            await supabase.from('player_logs').insert({
                 player_id: player.id,
                 event: 'heartbeat',
                 details: {
@@ -71,6 +77,7 @@ export async function POST(request: NextRequest) {
                     timestamp: new Date().toISOString(),
                 },
             });
+        } catch { /* ignore */ }
 
         // Fetch pending commands
         const { data: pendingCommands } = await supabase
@@ -79,7 +86,6 @@ export async function POST(request: NextRequest) {
             .eq('player_id', player.id)
             .eq('status', 'pending');
 
-        // Mark them as sent
         if (pendingCommands && pendingCommands.length > 0) {
             await supabase
                 .from('player_commands')
@@ -91,6 +97,7 @@ export async function POST(request: NextRequest) {
             success: true,
             data: {
                 acknowledged: true,
+                duplicate: false,
                 server_time: new Date().toISOString(),
                 commands: pendingCommands || [],
             },

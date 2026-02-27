@@ -63,6 +63,13 @@ interface PlayerInfo {
     }[];
 }
 
+/** Player considered offline if no heartbeat in last 2 min */
+const OFFLINE_THRESHOLD_MS = 2 * 60 * 1000;
+function getEffectiveStatus(player: Pick<PlayerInfo, 'status' | 'last_heartbeat'>): 'online' | 'offline' {
+    if (!player.last_heartbeat) return 'offline';
+    return (Date.now() - new Date(player.last_heartbeat).getTime()) <= OFFLINE_THRESHOLD_MS ? 'online' : 'offline';
+}
+
 export default function DashboardPage() {
     const [stats, setStats] = useState<DashboardStats>({
         totalPlayers: 0,
@@ -130,7 +137,7 @@ export default function DashboardPage() {
 
         setStats({
             totalPlayers: playersList.length,
-            onlinePlayers: playersList.filter(p => p.status === 'online').length,
+            onlinePlayers: playersList.filter(p => getEffectiveStatus(p) === 'online').length,
             offlineAlerts: offlineAlertsCount,
             totalMedia: mediaRes.data?.length || 0,
             totalPlaylists: playlistsRes.count || 0,
@@ -274,8 +281,8 @@ export default function DashboardPage() {
                                 {players.map((player) => (
                                     <div key={player.id} className={styles.playerRow}>
                                         <div className={styles.playerInfo}>
-                                            <span className={`badge ${player.status === 'online' ? 'badge-online' : 'badge-offline'}`}>
-                                                {player.status}
+                                            <span className={`badge ${getEffectiveStatus(player) === 'online' ? 'badge-online' : 'badge-offline'}`}>
+                                                {getEffectiveStatus(player)}
                                             </span>
                                             <div>
                                                 <p className={styles.playerName}>{player.name}</p>

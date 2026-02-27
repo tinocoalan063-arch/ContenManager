@@ -31,10 +31,12 @@ import styles from './media.module.css';
 
 interface SceneLayer {
     id: string;
-    type: 'image' | 'video' | 'url' | 'widget' | 'clock' | 'weather';
+    type: 'image' | 'video' | 'url' | 'widget' | 'clock' | 'weather' | 'rss' | 'qr';
     name: string;
     url?: string;
     html?: string;
+    rssUrl?: string;
+    qrData?: string;
     x: number;
     y: number;
     scale: number;
@@ -125,6 +127,17 @@ export function generateSlideHtml(slideBackgrounds: any[], sceneLayers: any[], s
             content = `<img src="${layer.url}" style="width:100%; height:100%; object-fit:contain;" />`;
         } else if (layer.type === 'video') {
             content = `<video src="${layer.url}" autoplay loop muted style="width:100%; height:100%; object-fit:contain;"></video>`;
+        } else if (layer.type === 'qr') {
+            const qrVal = layer.qrData || 'https://example.com';
+            content = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=500x500&color=ffffff&bgcolor=00000000&data=${encodeURIComponent(qrVal)}" style="width:100%; height:100%; object-fit:contain;" />`;
+        } else if (layer.type === 'rss') {
+            const feedTitle = layer.rssUrl || 'Últimas Noticias: Deslizando información importante...';
+            content = `
+                <div style="width:100vw; background: rgba(0,0,0,0.8); color: #fff; padding: 15px 0; border-top: 2px solid var(--accent, #a78bfa); display: flex; align-items: center; text-shadow: 0 2px 5px rgba(0,0,0,0.5);">
+                    <div style="background: var(--accent, #a78bfa); padding: 5px 20px; font-weight: bold; font-size: 3vw; margin-right: 20px; border-radius: 0 10px 10px 0;">ÚLTIMA HORA</div>
+                    <marquee style="font-size: 2.5vw; flex: 1; font-family: sans-serif;" truespeed scrollamount="6">${feedTitle.replace(/"/g, '&quot;')}</marquee>
+                </div>
+            `;
         } else if (layer.type === 'widget' || layer.type === 'url') {
             content = `<iframe srcdoc="${layer.html?.replace(/"/g, '&quot;')}" style="width:100%; height:100%; border:none; overflow:hidden;"></iframe>`;
         }
@@ -1595,6 +1608,16 @@ export default function MediaPage() {
                                                                     setSceneLayers(prev => [...prev, newLayer]);
                                                                     setActiveLayerId(newLayer.id);
                                                                 }}><Box size={14} /> Clima Actual</button>
+                                                                <button className={styles.addLayerBtn} onClick={() => {
+                                                                    const newLayer: SceneLayer = { id: Math.random().toString(36).substr(2, 9), type: 'rss', name: 'Ticker RSS/Texto', x: 50, y: 90, scale: 1, active: true, rssUrl: 'Noticia importante del día...' };
+                                                                    setSceneLayers(prev => [...prev, newLayer]);
+                                                                    setActiveLayerId(newLayer.id);
+                                                                }}><Layout size={14} color="#f43f5e" /> Ticker RSS</button>
+                                                                <button className={styles.addLayerBtn} onClick={() => {
+                                                                    const newLayer: SceneLayer = { id: Math.random().toString(36).substr(2, 9), type: 'qr', name: 'Código QR', x: 80, y: 80, scale: 0.5, active: true, qrData: 'https://ejemplo.com' };
+                                                                    setSceneLayers(prev => [...prev, newLayer]);
+                                                                    setActiveLayerId(newLayer.id);
+                                                                }}><Grid size={14} color="#10b981" /> Código QR</button>
                                                             </div>
                                                         </div>
                                                     )}
@@ -1657,6 +1680,36 @@ export default function MediaPage() {
                                                                             <input type="number" step="0.1" value={layer.scale} onChange={(e) => setSceneLayers(prev => prev.map(l => l.id === layer.id ? { ...l, scale: parseFloat(e.target.value) || 1 } : l))} className="input" style={{ width: '45px', padding: '2px', fontSize: '0.7rem' }} />
                                                                         </div>
                                                                     </div>
+
+                                                                    {layer.type === 'rss' && (
+                                                                        <div style={{ marginTop: '4px' }}>
+                                                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', marginBottom: '4px' }}>
+                                                                                <span className="text-muted">Texto del Ticker o URL RSS</span>
+                                                                            </div>
+                                                                            <input
+                                                                                type="text"
+                                                                                className="input"
+                                                                                value={layer.rssUrl || ''}
+                                                                                onChange={(e) => setSceneLayers(prev => prev.map(l => l.id === layer.id ? { ...l, rssUrl: e.target.value } : l))}
+                                                                                placeholder="Ej: Ofertas del día..."
+                                                                            />
+                                                                        </div>
+                                                                    )}
+
+                                                                    {layer.type === 'qr' && (
+                                                                        <div style={{ marginTop: '4px' }}>
+                                                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', marginBottom: '4px' }}>
+                                                                                <span className="text-muted">Datos del Código QR (URL, Texto, etc)</span>
+                                                                            </div>
+                                                                            <input
+                                                                                type="text"
+                                                                                className="input"
+                                                                                value={layer.qrData || ''}
+                                                                                onChange={(e) => setSceneLayers(prev => prev.map(l => l.id === layer.id ? { ...l, qrData: e.target.value } : l))}
+                                                                                placeholder="https://mi-promocion.com"
+                                                                            />
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -1708,6 +1761,17 @@ export default function MediaPage() {
                                                                     <div style={{ fontSize: '1.5rem', fontWeight: 'bold', lineHeight: 1 }}>24°C</div>
                                                                     <div style={{ fontSize: '0.6rem', opacity: 0.8 }}>México</div>
                                                                 </div>
+                                                            </div>
+                                                        )}
+                                                        {layer.type === 'rss' && (
+                                                            <div style={{ width: '600px', background: 'rgba(0,0,0,0.8)', color: '#fff', padding: '10px', borderTop: '2px solid var(--accent)', display: 'flex', alignItems: 'center' }}>
+                                                                <div style={{ background: 'var(--accent)', padding: '2px 10px', fontWeight: 'bold', fontSize: '1.2rem', marginRight: '10px', borderRadius: '4px' }}>INFO</div>
+                                                                <div style={{ fontSize: '1rem', whiteSpace: 'nowrap', overflow: 'hidden' }}>{layer.rssUrl || 'Ticker de Noticias RSS'}</div>
+                                                            </div>
+                                                        )}
+                                                        {layer.type === 'qr' && (
+                                                            <div style={{ background: '#fff', padding: '8px', borderRadius: '4px', display: 'inline-block' }}>
+                                                                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(layer.qrData || 'demo')}`} alt="QR" style={{ width: '150px', height: '150px', display: 'block' }} />
                                                             </div>
                                                         )}
                                                         {layer.type === 'image' && (

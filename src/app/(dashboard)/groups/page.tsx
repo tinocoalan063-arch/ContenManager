@@ -13,8 +13,13 @@ import {
     Search,
     UserPlus,
     X,
+    ListVideo,
+    Calendar,
+    Clock,
 } from 'lucide-react';
 import styles from './groups.module.css';
+
+const DAYS = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
 
 interface Group {
     id: string;
@@ -43,7 +48,30 @@ export default function GroupsPage() {
     const [saving, setSaving] = useState(false);
     const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
 
+    // Dayparting & Assignment States
+    const [showAssignModal, setShowAssignModal] = useState(false);
+    const [playlists, setPlaylists] = useState<{ id: string, name: string }[]>([]);
+    const [selectedPlaylist, setSelectedPlaylist] = useState('');
+    const [schedule, setSchedule] = useState({
+        start_date: '',
+        end_date: '',
+        start_time: '00:00:00',
+        end_time: '23:59:59',
+        days_of_week: [0, 1, 2, 3, 4, 5, 6]
+    });
+
     const supabase = createClient();
+
+    useEffect(() => {
+        if (showAssignModal) {
+            fetchPlaylists();
+        }
+    }, [showAssignModal]);
+
+    async function fetchPlaylists() {
+        const { data } = await supabase.from('playlists').select('id, name');
+        setPlaylists(data || []);
+    }
 
     useEffect(() => {
         fetchData();
@@ -129,6 +157,39 @@ export default function GroupsPage() {
         if (!error) fetchData();
     }
 
+    async function handleAssignPlaylist() {
+        if (!selectedGroupId || !selectedPlaylist) return;
+        setSaving(true);
+        const res = await fetch('/api/v1/admin/groups', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id: selectedGroupId,
+                playlist_id: selectedPlaylist,
+                schedule: {
+                    start_time: schedule.start_time || null,
+                    end_time: schedule.end_time || null,
+                    days_of_week: schedule.days_of_week
+                }
+            }),
+        });
+
+        if (res.ok) {
+            setShowAssignModal(false);
+            fetchData();
+        }
+        setSaving(false);
+    }
+
+    function toggleDay(day: number) {
+        setSchedule(prev => ({
+            ...prev,
+            days_of_week: prev.days_of_week.includes(day)
+                ? prev.days_of_week.filter(d => d !== day)
+                : [...prev.days_of_week, day]
+        }));
+    }
+
     return (
         <>
             <Topbar title="Grupos" subtitle="Organiza tus players por ubicación o propósito" />
@@ -189,6 +250,10 @@ export default function GroupsPage() {
                                             </p>
                                         </div>
                                         <div style={{ display: 'flex', gap: '8px' }}>
+                                            <button className="btn btn-primary btn-sm" onClick={() => setShowAssignModal(true)}>
+                                                <ListVideo size={14} />
+                                                Programar Playlist
+                                            </button>
                                             <button className="btn btn-secondary btn-sm" onClick={() => setShowAddPlayersModal(true)}>
                                                 <UserPlus size={14} />
                                                 Agregar Players
@@ -321,6 +386,75 @@ export default function GroupsPage() {
                             <button className="btn btn-primary" disabled={saving || selectedPlayers.length === 0} onClick={handleAddPlayersToGroup}>
                                 {saving ? <Loader2 size={16} className="loading-spinner" /> : <UserPlus size={16} />}
                                 Asignar {selectedPlayers.length} Players
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Assign/Schedule Modal */}
+            {showAssignModal && selectedGroup && (
+                <div className="modal-overlay" onClick={() => setShowAssignModal(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>Programar Playlist en Grupo</h2>
+                            <button className="modal-close" onClick={() => setShowAssignModal(false)}>✕</button>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="label">Seleccionar Playlist</label>
+                            <select
+                                className="input"
+                                value={selectedPlaylist}
+                                onChange={(e) => setSelectedPlaylist(e.target.value)}
+                            >
+                                <option value="">Seleccione una playlist...</option>
+                                {playlists.map(p => (
+                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {selectedPlaylist && (
+                            <div className="schedule-section" style={{ marginTop: '20px', padding: '15px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--glass-border)' }}>
+                                <h4 style={{ marginBottom: '15px', fontSize: '0.9rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Calendar size={14} className="text-accent" /> Ventana de Reproducción
+                                </h4>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
+                                    <div className="form-group" style={{ marginBottom: 0 }}>
+                                        <label className="label">Hora Inicio</label>
+                                        <input type="time" className="input" value={schedule.start_time} onChange={(e) => setSchedule({ ...schedule, start_time: e.target.value })} />
+                                    </div>
+                                    <div className="form-group" style={{ marginBottom: 0 }}>
+                                        <label className="label">Hora Fin</label>
+                                        <input type="time" className="input" value={schedule.end_time} onChange={(e) => setSchedule({ ...schedule, end_time: e.target.value })} />
+                                    </div>
+                                </div>
+
+                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                    <label className="label">Días Autorizados</label>
+                                    <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                                        {DAYS.map((day, idx) => (
+                                            <button
+                                                key={idx}
+                                                className={`btn btn-sm ${schedule.days_of_week.includes(idx) ? 'btn-primary' : 'btn-secondary'}`}
+                                                onClick={() => toggleDay(idx)}
+                                                style={{ padding: '4px 8px', fontSize: '0.75rem', minWidth: '40px' }}
+                                            >
+                                                {day}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="modal-actions" style={{ marginTop: '24px' }}>
+                            <button className="btn btn-secondary" onClick={() => setShowAssignModal(false)}>Cancelar</button>
+                            <button className="btn btn-primary" disabled={saving || !selectedPlaylist} onClick={handleAssignPlaylist}>
+                                {saving ? <Loader2 size={16} className="loading-spinner" /> : <ListVideo size={16} />}
+                                Guardar Programación
                             </button>
                         </div>
                     </div>

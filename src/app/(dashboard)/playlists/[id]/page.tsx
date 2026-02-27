@@ -64,6 +64,17 @@ export function generateSlideHtml(slideBackgrounds: any[], sceneLayers: any[], s
             content = `<img src="${layer.url}" style="width:100%; height:100%; object-fit:contain;" />`;
         } else if (layer.type === 'video') {
             content = `<video src="${layer.url}" autoplay loop muted style="width:100%; height:100%; object-fit:contain;"></video>`;
+        } else if (layer.type === 'qr') {
+            const qrVal = layer.qrData || 'https://example.com';
+            content = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=500x500&color=ffffff&bgcolor=00000000&data=${encodeURIComponent(qrVal)}" style="width:100%; height:100%; object-fit:contain;" />`;
+        } else if (layer.type === 'rss') {
+            const feedTitle = layer.rssUrl || 'Últimas Noticias: Deslizando información importante...';
+            content = `
+                <div style="width:100vw; background: rgba(0,0,0,0.8); color: #fff; padding: 15px 0; border-top: 2px solid var(--accent, #a78bfa); display: flex; align-items: center; text-shadow: 0 2px 5px rgba(0,0,0,0.5);">
+                    <div style="background: var(--accent, #a78bfa); padding: 5px 20px; font-weight: bold; font-size: 3vw; margin-right: 20px; border-radius: 0 10px 10px 0;">ÚLTIMA HORA</div>
+                    <marquee style="font-size: 2.5vw; flex: 1; font-family: sans-serif;" truespeed scrollamount="6">${feedTitle.replace(/"/g, '&quot;')}</marquee>
+                </div>
+            `;
         } else if (layer.type === 'widget' || layer.type === 'url') {
             content = `<iframe srcdoc="${layer.html?.replace(/"/g, '&quot;')}" style="width:100%; height:100%; border:none; overflow:hidden;"></iframe>`;
         }
@@ -126,6 +137,7 @@ interface PlaylistItem {
     media_id: string;
     position: number;
     duration_seconds: number;
+    transition_type?: string;
     media: MediaItem;
 }
 
@@ -148,6 +160,7 @@ export default function PlaylistEditorPage({ params }: { params: Promise<{ id: s
     const [showPreview, setShowPreview] = useState(false);
     const [previewIndex, setPreviewIndex] = useState(0);
     const [previewProgress, setPreviewProgress] = useState(0);
+    const [transitionClass, setTransitionClass] = useState('');
 
     // Sequence Drag & Drop
     const [draggedSeqIndex, setDraggedSeqIndex] = useState<number | null>(null);
@@ -309,6 +322,7 @@ export default function PlaylistEditorPage({ params }: { params: Promise<{ id: s
             media_id: media.id,
             position: items.length,
             duration_seconds: media.type === 'video' ? media.duration_seconds : 10,
+            transition_type: 'none',
             media: media
         };
         setItems([...items, newItem]);
@@ -353,6 +367,12 @@ export default function PlaylistEditorPage({ params }: { params: Promise<{ id: s
     };
     // ----------------------------
 
+    const updateTransition = (index: number, value: string) => {
+        const newItems = [...items];
+        newItems[index].transition_type = value;
+        setItems(newItems);
+    };
+
     const updateDuration = (index: number, value: number) => {
         const newItems = [...items];
         const item = newItems[index];
@@ -378,7 +398,8 @@ export default function PlaylistEditorPage({ params }: { params: Promise<{ id: s
                     playlist_id: id,
                     media_id: item.media_id,
                     position: idx,
-                    duration_seconds: item.duration_seconds
+                    duration_seconds: item.duration_seconds,
+                    transition_type: item.transition_type || 'none'
                 }));
                 await supabase.from('playlist_items').insert(insertData);
             }
@@ -412,9 +433,28 @@ export default function PlaylistEditorPage({ params }: { params: Promise<{ id: s
                 if (progress >= 100) {
                     setPreviewProgress(100);
                     clearInterval(timer);
+
+                    const nextIdx = (previewIndex + 1) % items.length;
+                    const nextItem = items[nextIdx];
+
+                    if (nextItem.transition_type === 'fade') {
+                        setTransitionClass('transition-fade-enter');
+                    } else if (nextItem.transition_type === 'slide') {
+                        setTransitionClass('transition-slide-enter');
+                    } else {
+                        setTransitionClass('');
+                    }
+
                     setTimeout(() => {
-                        setPreviewIndex((prev) => (prev + 1) % items.length);
-                    }, 100);
+                        setPreviewIndex(nextIdx);
+                    }, 50);
+
+                    // Clear transition class after animation duration
+                    if (nextItem.transition_type && nextItem.transition_type !== 'none') {
+                        setTimeout(() => {
+                            setTransitionClass('');
+                        }, 800);
+                    }
                 } else {
                     setPreviewProgress(progress);
                 }
@@ -609,17 +649,38 @@ export default function PlaylistEditorPage({ params }: { params: Promise<{ id: s
                                             <h4>{item.media.name}</h4>
                                         </div>
                                         <div className={styles.seqDuration}>
-                                            <div className="form-group" style={{ marginBottom: 0 }}>
-                                                <input
-                                                    type="number"
-                                                    className={`input ${styles.durationInput}`}
-                                                    value={item.duration_seconds}
-                                                    onChange={(e) => updateDuration(idx, parseInt(e.target.value) || 0)}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                />
+                                            <div style={{ display: 'flex', gap: '10px' }}>
+                                                <div>
+                                                    <label style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Miliseg.</label>
+                                                    <div className="form-group" style={{ marginBottom: 0 }}>
+                                                        <input
+                                                            type="number"
+                                                            className={`input ${styles.durationInput}`}
+                                                            value={item.duration_seconds}
+                                                            onChange={(e) => updateDuration(idx, parseInt(e.target.value) || 0)}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            title="Duración"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Transición</label>
+                                                    <div className="form-group" style={{ marginBottom: 0 }}>
+                                                        <select
+                                                            className={`input ${styles.durationInput}`}
+                                                            style={{ padding: '0 8px', width: '90px' }}
+                                                            value={item.transition_type || 'none'}
+                                                            onChange={(e) => updateTransition(idx, e.target.value)}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <option value="none">Corte</option>
+                                                            <option value="fade">Fade</option>
+                                                            <option value="slide">Deslizar</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                <span style={{ fontSize: '0.7rem' }}>segundos</span>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
                                                 {item.media.type === 'video' && (
                                                     <span className={styles.maxDuration}>Max: {item.media.duration_seconds}s</span>
                                                 )}
@@ -658,53 +719,55 @@ export default function PlaylistEditorPage({ params }: { params: Promise<{ id: s
                         </div>
 
                         <div style={{ position: 'relative', background: '#000', borderRadius: 'var(--radius-md)', overflow: 'hidden', aspectRatio: '16 / 9', minWidth: '60vw', maxHeight: '70vh' }}>
-                            {items[previewIndex].media.type === 'image' && (
-                                <img
-                                    src={items[previewIndex].media.preview_url}
-                                    alt=""
-                                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                                />
-                            )}
-                            {items[previewIndex].media.type === 'video' && (
-                                <video
-                                    src={items[previewIndex].media.preview_url}
-                                    autoPlay
-                                    muted
-                                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                                />
-                            )}
-                            {items[previewIndex].media.type === 'url' && (
-                                <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-                                    <iframe
-                                        src={items[previewIndex].media.url || ''}
-                                        style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }}
+                            <div className={transitionClass} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}>
+                                {items[previewIndex].media.type === 'image' && (
+                                    <img
+                                        src={items[previewIndex].media.preview_url}
+                                        alt=""
+                                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                                     />
-                                    <div style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 10 }}>
-                                        <a
-                                            href={items[previewIndex].media.url || '#'}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="btn btn-secondary btn-sm"
-                                            style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.3)', backdropFilter: 'blur(8px)', background: 'rgba(255,255,255,0.1)' }}
-                                            title="Abrir en pestaña nueva si no carga"
-                                        >
-                                            <ExternalLink size={14} />
-                                            Abrir enlace
-                                        </a>
+                                )}
+                                {items[previewIndex].media.type === 'video' && (
+                                    <video
+                                        src={items[previewIndex].media.preview_url}
+                                        autoPlay
+                                        muted
+                                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                    />
+                                )}
+                                {items[previewIndex].media.type === 'url' && (
+                                    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                                        <iframe
+                                            src={items[previewIndex].media.url || ''}
+                                            style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }}
+                                        />
+                                        <div style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 10 }}>
+                                            <a
+                                                href={items[previewIndex].media.url || '#'}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="btn btn-secondary btn-sm"
+                                                style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.3)', backdropFilter: 'blur(8px)', background: 'rgba(255,255,255,0.1)' }}
+                                                title="Abrir en pestaña nueva si no carga"
+                                            >
+                                                <ExternalLink size={14} />
+                                                Abrir enlace
+                                            </a>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                            {items[previewIndex].media.type === 'widget' && (() => {
-                                const config = typeof items[previewIndex].media.config === 'string'
-                                    ? JSON.parse(items[previewIndex].media.config || '{}')
-                                    : (items[previewIndex].media.config || {});
-                                return (
-                                    <iframe
-                                        srcDoc={generateSlideHtml(config.backgrounds || [], config.layers || [], config.slideBgMode || 'cover')}
-                                        style={{ width: '100%', height: '100%', border: 'none', background: '#000' }}
-                                    />
-                                );
-                            })()}
+                                )}
+                                {items[previewIndex].media.type === 'widget' && (() => {
+                                    const config = typeof items[previewIndex].media.config === 'string'
+                                        ? JSON.parse(items[previewIndex].media.config || '{}')
+                                        : (items[previewIndex].media.config || {});
+                                    return (
+                                        <iframe
+                                            srcDoc={generateSlideHtml(config.backgrounds || [], config.layers || [], config.slideBgMode || 'cover')}
+                                            style={{ width: '100%', height: '100%', border: 'none', background: '#000' }}
+                                        />
+                                    );
+                                })()}
+                            </div>
 
                             {/* Progress Bar */}
                             <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '4px', background: 'rgba(255,255,255,0.1)' }}>

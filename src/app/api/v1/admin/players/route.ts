@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
         const { data: players, error } = await supabase
             .from('players')
-            .select('*, player_playlists(*, playlist:playlists(*))')
+            .select('*, schedules(*, playlist:playlists(*))')
             .eq('company_id', userData.company_id)
             .order('created_at', { ascending: false });
 
@@ -129,6 +129,19 @@ export async function PUT(request: NextRequest) {
             );
         }
 
+        const { data: userData } = await supabase
+            .from('users')
+            .select('company_id')
+            .eq('id', user.id)
+            .single();
+
+        if (!userData) {
+            return NextResponse.json<ApiResponse>(
+                { success: false, error: 'Usuario no encontrado' },
+                { status: 404 }
+            );
+        }
+
         const body = await request.json();
         const { id, name, group_name, playlist_id } = body;
 
@@ -152,31 +165,29 @@ export async function PUT(request: NextRequest) {
 
         if (error) throw error;
 
-        // Handle playlist assignment
+        // Handle playlist assignment via new schedules table
         if (playlist_id !== undefined) {
-            const { schedule } = body; // start_date, end_date, start_time, end_time, days_of_week
+            const { schedule } = body;
 
-            // Deactivate existing assignments for this player
+            // Remove previous active scheduling for this player (simplification for MVP Dayparting)
             await supabase
-                .from('player_playlists')
-                .update({ is_active: false })
+                .from('schedules')
+                .delete()
                 .eq('player_id', id);
 
             if (playlist_id) {
                 const scheduleData = schedule || {};
                 await supabase
-                    .from('player_playlists')
-                    .upsert({
+                    .from('schedules')
+                    .insert({
+                        company_id: userData.company_id,
                         player_id: id,
                         playlist_id,
-                        is_active: true,
-                        start_date: scheduleData.start_date || null,
-                        end_date: scheduleData.end_date || null,
-                        start_time: scheduleData.start_time || null,
-                        end_time: scheduleData.end_time || null,
-                        days_of_week: scheduleData.days_of_week || null,
-                        assigned_at: new Date().toISOString(),
-                    }, { onConflict: 'player_id,playlist_id' });
+                        start_time: scheduleData.start_time || '00:00:00',
+                        end_time: scheduleData.end_time || '23:59:59',
+                        days_of_week: scheduleData.days_of_week || [0, 1, 2, 3, 4, 5, 6],
+                        is_fallback: true // For now, the main assigned playlist acts as fallback/default
+                    });
             }
         }
 

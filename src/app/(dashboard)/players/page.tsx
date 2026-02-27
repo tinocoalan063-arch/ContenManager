@@ -18,8 +18,11 @@ import {
     RotateCcw,
     Camera,
     Eraser,
+    Map,
+    List,
 } from 'lucide-react';
 import styles from './players.module.css';
+import PlayerMap from './PlayerMap';
 
 interface PlayerRow {
     id: string;
@@ -28,18 +31,29 @@ interface PlayerRow {
     status: 'online' | 'offline';
     last_heartbeat: string | null;
     group_name: string | null;
-    player_playlists?: {
+    latitude: number | null;
+    longitude: number | null;
+    schedules?: {
         playlist_id: string;
         playlist: { name: string } | { name: string }[] | null;
-        is_active: boolean;
     }[];
 }
 
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
 
+/** A player is considered offline if no heartbeat arrived in the last 2 minutes. */
+const OFFLINE_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes
+
+function getEffectiveStatus(player: { status: string; last_heartbeat: string | null }): 'online' | 'offline' {
+    if (!player.last_heartbeat) return 'offline';
+    const elapsed = Date.now() - new Date(player.last_heartbeat).getTime();
+    return elapsed <= OFFLINE_THRESHOLD_MS ? 'online' : 'offline';
+}
+
 export default function PlayersPage() {
     const [players, setPlayers] = useState<PlayerRow[]>([]);
     const [loading, setLoading] = useState(true);
+    const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
     const [showModal, setShowModal] = useState(false);
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [selectedPlayer, setSelectedPlayer] = useState<PlayerRow | null>(null);
@@ -101,7 +115,7 @@ export default function PlayersPage() {
 
         const { data } = await supabase
             .from('players')
-            .select('*, player_playlists(is_active, playlist_id, playlist:playlists(name))')
+            .select('*, schedules(playlist_id, playlist:playlists(name))')
             .eq('company_id', companyId)
             .order('created_at', { ascending: false });
 
@@ -230,9 +244,10 @@ export default function PlayersPage() {
 
     function openAssignModal(player: PlayerRow) {
         setSelectedPlayer(player);
-        const activePP = player.player_playlists?.find(pp => pp.is_active);
-        if (activePP) {
-            setSelectedPlaylist(activePP.playlist_id || '');
+        const activeSchedule = player.schedules && player.schedules.length > 0 ? player.schedules[0] : null;
+
+        if (activeSchedule) {
+            setSelectedPlaylist(activeSchedule.playlist_id || '');
         } else {
             setSelectedPlaylist('');
         }
@@ -246,7 +261,7 @@ export default function PlayersPage() {
     }
 
     function getActivePlaylist(player: PlayerRow): string | null {
-        const active = player.player_playlists?.find(pp => pp.is_active);
+        const active = player.schedules && player.schedules.length > 0 ? player.schedules[0] : null;
         if (!active?.playlist) return null;
 
         const playlistData = Array.isArray(active.playlist) ? active.playlist[0] : active.playlist;
@@ -267,6 +282,14 @@ export default function PlayersPage() {
                     </div>
                     {currentUserRole !== 'editor' && (
                         <div className="page-header-actions">
+                            <div className={styles.viewToggle} style={{ display: 'flex', background: 'var(--bg-tertiary)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+                                <button className={`btn btn-icon ${viewMode === 'list' ? styles.viewActive : ''}`} onClick={() => setViewMode('list')} style={{ background: viewMode === 'list' ? 'var(--accent-subtle)' : 'transparent', color: viewMode === 'list' ? 'var(--accent)' : 'var(--text-muted)' }}>
+                                    <List size={16} />
+                                </button>
+                                <button className={`btn btn-icon ${viewMode === 'map' ? styles.viewActive : ''}`} onClick={() => setViewMode('map')} style={{ background: viewMode === 'map' ? 'var(--accent-subtle)' : 'transparent', color: viewMode === 'map' ? 'var(--accent)' : 'var(--text-muted)' }}>
+                                    <Map size={16} />
+                                </button>
+                            </div>
                             <button className="btn btn-primary btn-full-mobile" onClick={() => setShowModal(true)}>
                                 <Plus size={16} />
                                 Registrar Player
@@ -286,6 +309,8 @@ export default function PlayersPage() {
                         <h3>Sin players</h3>
                         <p>Registra tu primer player para comenzar a distribuir contenido.</p>
                     </div>
+                ) : viewMode === 'map' ? (
+                    <PlayerMap players={players} onMarkerClick={(p) => openAssignModal(p)} />
                 ) : (
                     <div className="mobile-table-wrapper">
                         <div className="table-container">
@@ -307,8 +332,8 @@ export default function PlayersPage() {
                                         return (
                                             <tr key={player.id}>
                                                 <td>
-                                                    <span className={`badge ${player.status === 'online' ? 'badge-online' : 'badge-offline'}`}>
-                                                        {player.status}
+                                                    <span className={`badge ${getEffectiveStatus(player) === 'online' ? 'badge-online' : 'badge-offline'}`}>
+                                                        {getEffectiveStatus(player)}
                                                     </span>
                                                 </td>
                                                 <td>

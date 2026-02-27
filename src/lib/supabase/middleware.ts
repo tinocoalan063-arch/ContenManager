@@ -33,8 +33,11 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser();
 
-    // Allow player API routes without auth
-    if (request.nextUrl.pathname.startsWith('/api/v1/player')) {
+    // Allow player API routes and Player App page without CMS auth (they use device_key)
+    if (
+        request.nextUrl.pathname.startsWith('/api/v1/player') ||
+        request.nextUrl.pathname.startsWith('/player')
+    ) {
         return supabaseResponse;
     }
 

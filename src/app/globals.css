@@ -738,6 +738,58 @@ h3 {
   animation: fadeInUp 0.4s ease forwards;
 }
 
+/* ── Playlist Media Transitions ── */
+
+.transition-fade-enter {
+  animation: fadeIn 0.8s ease-in-out forwards;
+}
+
+.transition-fade-exit {
+  animation: fadeOut 0.8s ease-in-out forwards;
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+.transition-slide-enter {
+  animation: slideInRight 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.transition-slide-exit {
+  animation: slideOutLeft 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutLeft {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
   :root {
