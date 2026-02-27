@@ -396,6 +396,9 @@ export default function MediaPage() {
         // Generate slideshow HTML + positioned layers
         const html = generateSlideHtml(slideBackgrounds, sceneLayers, slideBgMode);
 
+        // Calculate total duration
+        const totalDuration = slideBackgrounds.reduce((sum, bg) => sum + (bg.duration || 10), 0);
+
         const slideData = {
             company_id: userData.company_id,
             name: slideName,
