@@ -583,7 +583,7 @@ export default function MediaPage() {
                 // For widgets (Slides), refresh all background preview URLs and use the first as the main preview
                 if (item.type === 'widget') {
                     const backgrounds = item.config?.backgrounds || [];
-                    const updatedBackgrounds = await Promise.all(backgrounds.map(async (bg) => {
+                    const updatedBackgrounds = await Promise.all(backgrounds.map(async (bg: any) => {
                         const { data: bgItem } = await supabase.from('media').select('file_path').eq('id', bg.id).single();
                         if (bgItem?.file_path) {
                             const { data: signedData } = await supabase.storage.from('media').createSignedUrl(bgItem.file_path, 3600);
