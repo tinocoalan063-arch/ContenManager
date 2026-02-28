@@ -153,6 +153,8 @@ function SetupScreen({ onSave }: { onSave: (key: string) => void }) {
             if (!res.ok || !json.success) {
                 setError('Device key inválido. Verifica en el CMS.');
             } else {
+                // Request fullscreen from within the click handler (browser requirement)
+                try { await document.documentElement.requestFullscreen(); } catch { /* not supported */ }
                 onSave(input.trim());
             }
         } catch {
@@ -246,6 +248,19 @@ export default function PlayerPage() {
     const [transitionClass, setTransitionClass] = useState('');
     const [status, setStatus] = useState<'loading' | 'syncing' | 'playing' | 'offline' | 'no-content' | 'duplicate'>('loading');
     const [playlistName, setPlaylistName] = useState('');
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    // ── Fullscreen helpers ───────────────────────────────────────────────────
+    const enterFullscreen = async () => {
+        try { await document.documentElement.requestFullscreen(); } catch { /* not supported */ }
+    };
+
+    useEffect(() => {
+        const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+        document.addEventListener('fullscreenchange', handleFsChange);
+        return () => document.removeEventListener('fullscreenchange', handleFsChange);
+    }, []);
+
 
     const syncTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const heartbeatTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -603,6 +618,37 @@ export default function PlayerPage() {
                         width: `${((currentIndex + 1) / items.length) * 100}%`,
                         transition: 'width 0.4s ease',
                     }} />
+                </div>
+            )}
+
+            {/* Fullscreen re-enter button (shows when user presses ESC) */}
+            {!isFullscreen && (
+                <div
+                    onClick={enterFullscreen}
+                    style={{
+                        position: 'absolute', top: '50%', left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        zIndex: 300, cursor: 'pointer',
+                        background: 'rgba(0,0,0,0.6)',
+                        backdropFilter: 'blur(12px)',
+                        border: '1px solid rgba(167,139,250,0.3)',
+                        borderRadius: '16px',
+                        padding: '20px 32px',
+                        display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', gap: '10px',
+                        opacity: 0,
+                        animation: 'fsHintFade 0.4s ease 1.5s forwards',
+                    }}
+                >
+                    <style>{`
+                        @keyframes fsHintFade {
+                            from { opacity: 0; transform: translate(-50%, -48%); }
+                            to   { opacity: 1; transform: translate(-50%, -50%); }
+                        }
+                    `}</style>
+                    <div style={{ fontSize: '28px' }}>⛶</div>
+                    <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.9rem' }}>Clic para pantalla completa</div>
+                    <div style={{ color: 'rgba(167,139,250,0.8)', fontSize: '0.7rem' }}>Presiona F11 o haz clic aquí</div>
                 </div>
             )}
 
